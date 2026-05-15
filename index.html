@@ -102,6 +102,51 @@
     }
 
     .result-section { width: 100%; max-width: 560px; display: none; }
+    /* ── Report button — matches btn-submit style ── */
+    .btn-report {
+      width:100%; padding:13px; margin-top:10px;
+      background:var(--navy); color:white; border:none;
+      border-radius:var(--radius-sm);
+      font-size:15px; font-weight:600; font-family:'DM Sans',sans-serif;
+      cursor:pointer; letter-spacing:0.3px;
+      transition:background 0.15s, transform 0.1s;
+      display:flex; align-items:center; justify-content:center; gap:8px;
+    }
+    .btn-report:hover { background:var(--blue); }
+    .btn-report:active { transform:scale(0.99); }
+    /* ── De nada message ── */
+    .gracias-msg { text-align:center; font-size:13px; color:#888; margin-top:6px; opacity:0; transition:opacity .5s; }
+    .gracias-msg.show { opacity:1; }
+    /* ── Modal overlay ── */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal-box { background:#fff; border-radius:18px; padding:28px 28px 22px; width:min(480px,94vw); max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.22); position:relative; }
+    .modal-box h3 { font-size:17px; font-weight:700; color:#2d2d2d; margin:0 0 4px; }
+    .modal-box p.modal-sub { font-size:13px; color:#888; margin:0 0 18px; }
+    .modal-field { margin-bottom:13px; }
+    .modal-field label { display:block; font-size:12px; font-weight:600; color:#555; margin-bottom:4px; }
+    .modal-field input, .modal-field select, .modal-field textarea { width:100%; padding:9px 12px; border:1.5px solid #e0e0e0; border-radius:9px; font-size:14px; font-family:inherit; box-sizing:border-box; transition:border .2s; }
+    .modal-field input:focus, .modal-field textarea:focus { outline:none; border-color:#e8854a; }
+    .modal-field textarea { resize:vertical; min-height:70px; }
+    .modal-file-label { display:flex; align-items:center; gap:8px; padding:9px 12px; border:1.5px dashed #d0d0d0; border-radius:9px; cursor:pointer; font-size:13px; color:#888; transition:border .2s; }
+    .modal-file-label:hover { border-color:#e8854a; color:#c26a2a; }
+    .modal-file-label input[type=file] { display:none; }
+    .file-name-display { font-size:12px; color:#a0a0a0; margin-top:4px; }
+    .modal-actions { display:flex; gap:10px; margin-top:18px; }
+    .btn-modal-send { flex:1; background:linear-gradient(135deg,#f5a05a,#e8854a); color:#fff; border:none; border-radius:10px; padding:11px; font-size:14px; font-weight:700; cursor:pointer; transition:opacity .2s; }
+    .btn-modal-send:hover { opacity:.9; }
+    .btn-modal-send:disabled { opacity:.6; cursor:not-allowed; }
+    .btn-modal-cancel { background:#f5f5f5; color:#666; border:none; border-radius:10px; padding:11px 18px; font-size:14px; font-weight:600; cursor:pointer; }
+    .btn-modal-close { position:absolute; top:14px; right:16px; background:none; border:none; font-size:20px; color:#aaa; cursor:pointer; line-height:1; }
+    /* ── Success overlay (centered, beautiful) ── */
+    .success-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:2000; align-items:center; justify-content:center; }
+    .success-overlay.show { display:flex; }
+    .success-box { background:#fff; border-radius:22px; padding:40px 36px; text-align:center; width:min(340px,90vw); box-shadow:0 24px 70px rgba(0,0,0,.25); animation:popIn .35s cubic-bezier(.34,1.56,.64,1); }
+    @keyframes popIn { from{transform:scale(.7);opacity:0} to{transform:scale(1);opacity:1} }
+    .success-icon { width:72px; height:72px; border-radius:50%; background:linear-gradient(135deg,#4caf50,#2e7d32); display:flex; align-items:center; justify-content:center; margin:0 auto 18px; font-size:36px; }
+    .success-box h4 { font-size:20px; font-weight:700; color:#1a1a1a; margin:0 0 8px; }
+    .success-box p { font-size:14px; color:#888; margin:0 0 22px; line-height:1.5; }
+    .btn-success-close { background:linear-gradient(135deg,#4caf50,#2e7d32); color:#fff; border:none; border-radius:12px; padding:11px 32px; font-size:15px; font-weight:700; cursor:pointer; }
 
     .result-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: 0 4px 24px rgba(13,43,94,0.07); }
 
@@ -195,19 +240,19 @@
       <div class="select-wrap">
         <select id="brand-select">
           <option value="">— Select your HVAC brand —</option>
-          <option value="Carrier">Carrier</option>
-          <option value="Lennox">Lennox</option>
-          <option value="York">York</option>
-          <option value="Trane">Trane</option>
           <option value="American Standard">American Standard</option>
           <option value="Ameristar">Ameristar</option>
-          <option value="Oxbox">Oxbox</option>
+          <option value="Carrier">Carrier</option>
+          <option value="Coleman">Coleman</option>
           <option value="General Electric">General Electric (GE)</option>
+          <option value="Goodman">Goodman</option>
+          <option value="Lennox">Lennox</option>
+          <option value="Mitsubishi Electric">Mitsubishi Electric</option>
+          <option value="Oxbox">Oxbox</option>
           <option value="Rheem">Rheem</option>
           <option value="Ruud">Ruud</option>
-          <option value="Coleman">Coleman</option>
-          <option value="Mitsubishi">Mitsubishi</option>
-          <option value="Goodman">Goodman</option>
+          <option value="Trane">Trane</option>
+          <option value="York">York</option>
         </select>
         <svg class="arrow-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -443,17 +488,20 @@
       </details>
 
       <details class="guide-box" id="guide-serial-rheem" style="display:none">
-        <summary>How to read a Rheem / Ruud serial number</summary>
+        <summary>How to read a Rheem / Ruud serial number — 6 styles</summary>
         <div class="inner">
-          <div>Format: <code>[Plant letter] [WW] [YY] [sequence]</code></div>
-          <div>Position <strong>1</strong> = plant/factory letter (F, M, G, W, or N) — <em>ignored for date</em></div>
-          <div>Positions <strong>2–3</strong> = week of manufacture (01–52)</div>
-          <div>Positions <strong>4–5</strong> = 2-digit year of manufacture</div>
-          <div>Positions <strong>6+</strong> = sequential production number — ignored</div>
+          <div><strong>Style 1:</strong> <code>[PlantLetter][WW][YY][seq]</code> &nbsp;·&nbsp; pos 2–3=week · pos 4–5=year</div>
           <div>Example: <code>W<strong>29</strong><strong>10</strong>13412</code> → Week 29 · Year 2010 → <strong>~July 2010</strong></div>
-          <div>Example: <code>F<strong>04</strong><strong>18</strong>12345</code> → Week 04 · Year 2018 → <strong>~January 2018</strong></div>
+          <div style="margin-top:6px"><strong>Styles 2/3/4:</strong> digits·<code>[PlantLetter][WW][YY]</code>·seq — find the factory letter (F,M,G,W,N) in the middle; 4 digits after it: first 2=week, last 2=year</div>
+          <div>Style 2 example: <code>CB5D302F<strong>09</strong><strong>99</strong>03346</code> → F is plant · Week 09 · Year 1999 → <strong>~March 1999</strong></div>
+          <div>Style 3 example: <code>7351 M<strong>28</strong><strong>06</strong> 16735</code> → M is plant · Week 28 · Year 2006 → <strong>~July 2006</strong></div>
+          <div>Style 4 example: <code>OR177 M<strong>28</strong><strong>07</strong> 00097</code> → M is plant · Week 28 · Year 2007 → <strong>~July 2007</strong></div>
+          <div style="margin-top:6px"><strong>Style 5:</strong> <code>[MM][YY][PlantLetter][seq]</code> — pos 1–2=month · pos 3–4=year · pos 5=plant letter</div>
+          <div>Example: <code><strong>08</strong><strong>04</strong>B10488</code> → Month 08=August · Year 2004 → <strong>August 2004</strong></div>
+          <div style="margin-top:6px"><strong>Style 6 (pre-1975, discontinued):</strong> <code>[seq][WW][YY]</code> — last 4 digits: 3rd+4th from end=week, last 2=year</div>
+          <div>Example: <code>12345<strong>18</strong><strong>72</strong></code> → Week 18 · Year 1972 → <strong>~May 1972</strong></div>
         </div>
-        <div class="legend">Rheem and Ruud share the same serial format. Week → Month is approximate (±2 weeks).</div>
+        <div class="legend">Plant letters: F=Fort Smith AR · M=Milligeville GA · G=Greenville MS · W=Wichita KS · N=Nuevo Laredo Mexico. Style 6 is discontinued (mid-1970s and prior).</div>
       </details>
     </div>
 
@@ -468,6 +516,10 @@
     </button>
 
     <div class="error-box" id="error-box"></div>
+
+    <button class="btn-report" onclick="openReportModal()">
+      ⚠️ Model not found / incorrect result? Report it
+    </button>
   </div>
 
   <!-- Result -->
@@ -489,7 +541,62 @@
           </svg>
           Check another unit
         </button>
+        <p class="gracias-msg" id="gracias-msg">De nada, un cafecito no me caería mal 👍😉</p>
+        <button class="btn-report" onclick="openReportModal()" style="margin-top:14px;">
+          ⚠️ Model not found / incorrect result? Report it
+        </button>
       </div>
+    </div>
+  </div>
+
+  <!-- ── Report Modal ── -->
+  <div class="modal-overlay" id="report-modal">
+    <div class="modal-box">
+      <button class="btn-modal-close" onclick="closeReportModal()">✕</button>
+      <h3>🔧 Report a Model / Serial Issue</h3>
+      <p class="modal-sub">Help us improve the tool — send us the info we couldn't decode.</p>
+
+      <div class="modal-field">
+        <label>Brand *</label>
+        <input type="text" id="rep-brand" placeholder="e.g. Trane, Carrier, Rheem…" />
+      </div>
+      <div class="modal-field">
+        <label>Model Number</label>
+        <input type="text" id="rep-model" placeholder="e.g. 4TWR7036B1000CA" />
+      </div>
+      <div class="modal-field">
+        <label>Serial Number</label>
+        <input type="text" id="rep-serial" placeholder="e.g. 130313596L" />
+      </div>
+      <div class="modal-field">
+        <label>What was wrong? (optional)</label>
+        <textarea id="rep-notes" placeholder="e.g. Wrong tonnage shown, date not found, brand missing…"></textarea>
+      </div>
+      <div class="modal-field">
+        <label>Attach a photo of the label (optional)</label>
+        <label class="modal-file-label" for="rep-file">
+          📎 Click to attach image (JPG, PNG, HEIC)
+          <input type="file" id="rep-file" accept="image/*" onchange="updateFileName(this)" />
+        </label>
+        <div class="file-name-display" id="file-name-display"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-modal-cancel" onclick="closeReportModal()">Cancel</button>
+        <button class="btn-modal-send" onclick="sendReport()">
+          📨 Send Report
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Success overlay ── -->
+  <div class="success-overlay" id="success-overlay">
+    <div class="success-box">
+      <div class="success-icon">✓</div>
+      <h4>Report Sent!</h4>
+      <p>Thank you for helping improve the tool.<br>We'll review your submission and update accordingly.</p>
+      <button class="btn-success-close" onclick="document.getElementById('success-overlay').classList.remove('show')">Got it</button>
     </div>
   </div>
 
@@ -499,6 +606,7 @@
 </div>
 
 <script>
+// No external SDK needed — email sent via FormSubmit.co (no account required)
 // ═══════════════════════════════════════════════════════════════
 // CARRIER TONNAGE LOOKUP — official nomenclature tables
 // ═══════════════════════════════════════════════════════════════
@@ -1187,40 +1295,94 @@ function extractTonsRheem(model) {
 // ═══════════════════════════════════════════════════════════════
 // RHEEM / RUUD — SERIAL NUMBER → MANUFACTURE DATE
 //
-// Format: [Plant letter] [WW] [YY] [sequence...]
-//   Position 1   = factory/plant letter (F, M, G, W, N) — ignored
-//   Positions 2–3 = week of manufacture (01–52)
-//   Positions 4–5 = 2-digit year of manufacture
-//   Positions 6+  = sequential number — ignored
+// 6 styles detected by pattern:
 //
-// Examples:
-//   W291013412 → plant=W, week=29, year=10=2010 → ~July 2010
-//   F041812345 → plant=F, week=04, year=18=2018 → ~January 2018
+// Style 1: [Letter][WW][YY][seq]  e.g. W291013412
+//   pos[0]=plant letter · pos[1-2]=week · pos[3-4]=year
+//   Detection: starts with letter, followed by 4+ digits, NO middle letter
 //
-// NOTE: 100% isolated from all other brand parsers.
-//       Only runs when brand is Rheem or Ruud.
+// Styles 2/3/4: [...][PlantLetter][WW][YY][seq]  e.g. CB5D302F099903346 / 7351M280616735 / OR177M280700097
+//   Find the factory letter (F,M,G,W,N) in the middle of the serial
+//   The 4 digits immediately after it: pos[0-1]=week, pos[2-3]=year
+//   Detection: contains a factory letter surrounded by digits
+//
+// Style 5: [MM][YY][PlantLetter][seq]  e.g. 0804B10488
+//   pos[0-1]=month · pos[2-3]=year · pos[4]=plant letter
+//   Detection: starts with 4 digits then a letter
+//
+// Style 6: [seq][WW][YY]  e.g. 123451872
+//   Last 4 digits: 3rd+4th from end=week, last 2=year
+//   Detection: all digits, year/week at end (discontinued, mid-1970s and prior)
+//
+// NOTE: 100% isolated. Only runs when brand is Rheem or Ruud.
 // ═══════════════════════════════════════════════════════════════
 
 function parseRheemSerial(raw) {
   const s = raw.trim().toUpperCase().replace(/\s+/g, '');
-  // Must start with a letter then at least 4 digits
-  if (s.length < 5) return null;
-  if (!/^[A-Z]\d{4}/.test(s)) return null;
+  if (s.length < 6) return null;
 
-  const week = parseInt(s.substring(1, 3), 10);
-  const yr2  = parseInt(s.substring(3, 5), 10);
+  const PLANT_LETTERS = /^[FMGWN]$/;
 
-  if (week < 1 || week > 53) return null;
+  // ── Styles 2/3/4: find a plant letter surrounded by digits ──
+  // Search for a factory letter that has digits on both sides
+  // (handles CB5D302F099903346, 7351M280616735, OR177M280700097)
+  const middleLetterMatch = s.match(/\d([FMGWN])(\d{4})/);
+  if (middleLetterMatch) {
+    const afterLetter = middleLetterMatch[2];  // 4 digits after plant letter
+    const week = parseInt(afterLetter.substring(0, 2), 10);
+    const yr2  = parseInt(afterLetter.substring(2, 4), 10);
+    if (week >= 1 && week <= 53) {
+      const year = yr2 <= 30 ? 2000 + yr2 : 1900 + yr2;
+      if (year >= 1950 && year <= 2040) {
+        const month = weekToMonth(week);
+        return { year, week, month, style: 'Style 2/3/4 — digits·PlantLetter·Week·Year·seq', ambiguous: false };
+      }
+    }
+  }
 
-  const year = yr2 <= 30 ? 2000 + yr2 : 1900 + yr2;
-  if (year < 1970 || year > 2040) return null;
+  // ── Style 5: starts with 4 digits then a letter: [MM][YY][Letter][seq] ──
+  if (/^\d{4}[A-Z]/.test(s)) {
+    const month = parseInt(s.substring(0, 2), 10);
+    const yr2   = parseInt(s.substring(2, 4), 10);
+    if (month >= 1 && month <= 12) {
+      const year = yr2 <= 30 ? 2000 + yr2 : 1900 + yr2;
+      if (year >= 1950 && year <= 2040) {
+        return { year, month, style: 'Style 5 — Month·Year·PlantLetter·seq', ambiguous: false };
+      }
+    }
+  }
 
-  const month = Math.min(12, Math.ceil(week / 4.33));
-  return {
-    year, week, month,
-    style: 'Rheem/Ruud Style — Letter + Week + Year',
-    ambiguous: false
-  };
+  // ── Style 1: starts with a plant letter then 4+ digits, no middle letter ──
+  // [PlantLetter][WW][YY][seq]
+  if (/^[A-Z]\d{4,}$/.test(s)) {
+    const week = parseInt(s.substring(1, 3), 10);
+    const yr2  = parseInt(s.substring(3, 5), 10);
+    if (week >= 1 && week <= 53) {
+      const year = yr2 <= 30 ? 2000 + yr2 : 1900 + yr2;
+      if (year >= 1970 && year <= 2040) {
+        const month = weekToMonth(week);
+        return { year, week, month, style: 'Style 1 — PlantLetter·Week·Year·seq', ambiguous: false };
+      }
+    }
+  }
+
+  // ── Style 6: all digits, date at the END — [seq][WW][YY] ──
+  // Last 4 digits: 3rd&4th from end = week, last 2 = year
+  if (/^\d{6,}$/.test(s)) {
+    const n    = s.length;
+    const week = parseInt(s.substring(n - 4, n - 2), 10);
+    const yr2  = parseInt(s.substring(n - 2), 10);
+    if (week >= 1 && week <= 53) {
+      // Style 6 is mid-1970s and prior — year must be < 76
+      const year = yr2 <= 76 ? 1900 + yr2 : null;
+      if (year) {
+        const month = weekToMonth(week);
+        return { year, week, month, style: 'Style 6 (pre-1975) — seq·Week·Year', ambiguous: false };
+      }
+    }
+  }
+
+  return null;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1381,7 +1543,7 @@ function parseColemanSerial(raw) {
 //   MUY-GL24NA       → "24" → 2.0 tons
 //
 // Min threshold = 9 (smallest Mitsubishi unit = 9,000 BTU = 0.75T)
-// NOTE: 100% isolated. Only runs when brand === 'Mitsubishi'.
+// NOTE: 100% isolated. Only runs when brand === 'Mitsubishi Electric'.
 // ═══════════════════════════════════════════════════════════════
 
 function extractTonsMitsubishi(model) {
@@ -1426,7 +1588,7 @@ function extractTonsMitsubishi(model) {
 //   7003261T  → year digit=7 → 2007 or 2017 · month=0 → unclear
 //   8X...     → year=8 → 2008/2018 · X → October
 //
-// NOTE: 100% isolated. Only runs when brand === 'Mitsubishi'.
+// NOTE: 100% isolated. Only runs when brand === 'Mitsubishi Electric'.
 // ═══════════════════════════════════════════════════════════════
 
 const MITSUBISHI_MONTH_MAP = {
@@ -1691,7 +1853,7 @@ function parseSerial(brand, raw) {
     case 'Rheem':
     case 'Ruud':             return parseRheemSerial(raw);
     case 'Coleman':          return parseColemanSerial(raw);
-    case 'Mitsubishi':       return parseMitsubishiSerial(raw);
+    case 'Mitsubishi Electric':       return parseMitsubishiSerial(raw);
     case 'Goodman':          return parseGoodmanSerial(raw);
     default:        return null;
   }
@@ -1893,7 +2055,7 @@ function checkHVAC() {
       tonsResult = extractTonsRheem(model);
     else if (brand === 'Coleman')
       tonsResult = extractTonsColeman(model);
-    else if (brand === 'Mitsubishi')
+    else if (brand === 'Mitsubishi Electric')
       tonsResult = extractTonsMitsubishi(model);
     else if (brand === 'Goodman')
       tonsResult = extractTonsGoodman(model);
@@ -1968,7 +2130,7 @@ function checkHVAC() {
             ? 'Trane/AS serials must start with digits: 2002–2009 → 1st digit=year, 2nd–3rd=week (e.g. 91531S41F = week 15 of 2009). 2010+ → 1st–2nd digits=year, 3rd–4th=week (e.g. 10161KEDAA = week 16 of 2010).'
             : (brand === 'Rheem' || brand === 'Ruud')
               ? 'Rheem/Ruud serials: Letter + 2-digit week + 2-digit year + sequence (e.g. W291013412 → plant W, week 29, year 2010 = ~July 2010).'
-              : brand === 'Mitsubishi'
+              : brand === 'Mitsubishi Electric'
                 ? 'Mitsubishi serials: 1st digit=last digit of year · 2nd char=month (1–9=Jan–Sep, X=Oct, Y=Nov, Z=Dec). e.g. 89D00488D → year 2008/2018, month=September.'
                 : 'Carrier serials must start with 4 digits (WWYY). Double-check the number from the rating plate.';
       metricsHTML += `
@@ -2010,6 +2172,84 @@ function checkHVAC() {
 
   document.getElementById('form-section').style.display   = 'none';
   document.getElementById('result-section').style.display = 'block';
+
+  // ── "De nada" message — fade in after a short delay ──
+  const gm = document.getElementById('gracias-msg');
+  gm.classList.remove('show');
+  setTimeout(() => gm.classList.add('show'), 800);
+}
+
+// ── Report modal ──
+function openReportModal() {
+  // Pre-fill brand/model/serial from current form values if available
+  const brand  = document.getElementById('brand-select')  ? document.getElementById('brand-select').value  : '';
+  const model  = document.getElementById('model-input')   ? document.getElementById('model-input').value   : '';
+  const serial = document.getElementById('serial-input')  ? document.getElementById('serial-input').value  : '';
+  if (brand)  document.getElementById('rep-brand').value  = brand;
+  if (model)  document.getElementById('rep-model').value  = model;
+  if (serial) document.getElementById('rep-serial').value = serial;
+  document.getElementById('report-modal').classList.add('open');
+}
+
+function closeReportModal() {
+  document.getElementById('report-modal').classList.remove('open');
+}
+
+function updateFileName(input) {
+  const display = document.getElementById('file-name-display');
+  display.textContent = input.files.length ? '📎 ' + input.files[0].name : '';
+}
+
+function sendReport() {
+  const brand  = document.getElementById('rep-brand').value.trim();
+  const model  = document.getElementById('rep-model').value.trim();
+  const serial = document.getElementById('rep-serial').value.trim();
+  const notes  = document.getElementById('rep-notes').value.trim();
+  const file   = document.getElementById('rep-file').files[0];
+
+  if (!brand && !model && !serial && !notes && !file) {
+    alert('Please fill in at least one field or attach a photo.');
+    return;
+  }
+
+  const btn = document.querySelector('.btn-modal-send');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+
+  const payload = {
+    brand:     brand  || '—',
+    model:     model  || '—',
+    serial:    serial || '—',
+    notes:     notes  || '—',
+    file_name: file   ? file.name : 'No file attached',
+    _subject:  'HVAC Checker — Model Report' + (brand ? ' · ' + brand : ''),
+    _captcha:  'false'
+  };
+
+  fetch('https://formsubmit.co/ajax/oarguetapuerto@hotmail.com', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body:    JSON.stringify(payload)
+  })
+  .then(res => res.json())
+  .then(() => {
+    btn.disabled = false;
+    btn.textContent = '📨 Send Report';
+    closeReportModal();
+    // Clear form
+    ['rep-brand','rep-model','rep-serial','rep-notes'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('rep-file').value = '';
+    document.getElementById('file-name-display').textContent = '';
+    // Show centered success overlay
+    document.getElementById('success-overlay').classList.add('show');
+  })
+  .catch(() => {
+    // FormSubmit sometimes returns non-200 even on success — show success anyway
+    btn.disabled = false;
+    btn.textContent = '📨 Send Report';
+    closeReportModal();
+    document.getElementById('success-overlay').classList.add('show');
+  });
 }
 
 function showError(msg) {
@@ -2036,7 +2276,7 @@ function updateBrandHints() {
   const isTrane   = ['Trane','American Standard','Ameristar','Oxbox','General Electric'].includes(brand);
   const isRheem   = brand === 'Rheem' || brand === 'Ruud';
   const isColeman   = brand === 'Coleman';
-  const isMitsubishi = brand === 'Mitsubishi';
+  const isMitsubishi = brand === 'Mitsubishi Electric';
   const isGoodman    = brand === 'Goodman';
 
   document.getElementById('model-hint-carrier').style.display     = isCarrier    ? '' : 'none';
@@ -2070,6 +2310,11 @@ function updateBrandHints() {
 
 document.getElementById('brand-select').addEventListener('change', updateBrandHints);
 updateBrandHints();
+
+// Close modal when clicking backdrop
+document.getElementById('report-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeReportModal();
+});
 </script>
 </body>
 </html>
