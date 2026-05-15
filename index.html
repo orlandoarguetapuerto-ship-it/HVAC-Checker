@@ -2217,38 +2217,38 @@ function sendReport() {
   btn.textContent = 'Sending…';
 
   const payload = {
-    brand:     brand  || '—',
-    model:     model  || '—',
-    serial:    serial || '—',
-    notes:     notes  || '—',
-    file_name: file   ? file.name : 'No file attached',
-    _subject:  'HVAC Checker — Model Report' + (brand ? ' · ' + brand : ''),
-    _captcha:  'false'
+    access_key: 'fd030414-3acc-4ad9-8d3d-4f4b37e9c18f',
+    subject:    'HVAC Checker — Model Report' + (brand ? ' · ' + brand : ''),
+    brand:      brand  || '—',
+    model:      model  || '—',
+    serial:     serial || '—',
+    notes:      notes  || '—',
+    file_name:  file   ? file.name : 'No file attached',
   };
 
-  fetch('https://formsubmit.co/ajax/orlandoarguetapuerto@gmail.com', {
+  fetch('https://api.web3forms.com/submit', {
     method:  'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
     body:    JSON.stringify(payload)
   })
   .then(res => res.json())
-  .then(() => {
+  .then((data) => {
     btn.disabled = false;
     btn.textContent = '📨 Send Report';
-    closeReportModal();
-    // Clear form
-    ['rep-brand','rep-model','rep-serial','rep-notes'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('rep-file').value = '';
-    document.getElementById('file-name-display').textContent = '';
-    // Show centered success overlay
-    document.getElementById('success-overlay').classList.add('show');
+    if (data.success) {
+      closeReportModal();
+      ['rep-brand','rep-model','rep-serial','rep-notes'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('rep-file').value = '';
+      document.getElementById('file-name-display').textContent = '';
+      document.getElementById('success-overlay').classList.add('show');
+    } else {
+      alert('Could not send the report. Please try again.');
+    }
   })
   .catch(() => {
-    // FormSubmit sometimes returns non-200 even on success — show success anyway
     btn.disabled = false;
     btn.textContent = '📨 Send Report';
-    closeReportModal();
-    document.getElementById('success-overlay').classList.add('show');
+    alert('Connection error. Please check your internet and try again.');
   });
 }
 
