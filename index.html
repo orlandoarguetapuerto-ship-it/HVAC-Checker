@@ -205,6 +205,9 @@
           <option value="General Electric">General Electric (GE)</option>
           <option value="Rheem">Rheem</option>
           <option value="Ruud">Ruud</option>
+          <option value="Coleman">Coleman</option>
+          <option value="Mitsubishi">Mitsubishi</option>
+          <option value="Goodman">Goodman</option>
         </select>
         <svg class="arrow-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -227,6 +230,9 @@
       <p class="hint" id="model-hint-trane" style="display:none">Trane/American Standard: the 3-digit BTU/MBH code embedded in the model (e.g. 4A7A4<strong>024</strong>L1000A → 2 tons · TTA<strong>090</strong>D3H → 7.5 tons)</p>
       <p class="hint" id="model-hint-ameristar" style="display:none">Ameristar/Oxbox/GE: same Trane/American Standard BTU code logic — 3-digit code ÷ 12 = tons</p>
       <p class="hint" id="model-hint-rheem" style="display:none">Rheem/Ruud: find the 2–3 digit BTU code after the first letter group (e.g. RGEDZT<strong>120</strong>ACG → 120÷12 = <strong>10 tons</strong> · UA16AZ<strong>24</strong>AJ3 → 24÷12 = <strong>2 tons</strong>)</p>
+      <p class="hint" id="model-hint-coleman" style="display:none">Coleman: 2–3 digit BTU code in model number ÷ 12 = tons (same York/UPG logic — e.g. TM8S<strong>080</strong>C16MP11 → 80÷12 ≈ 6.7 tons)</p>
+      <p class="hint" id="model-hint-mitsubishi" style="display:none">Mitsubishi: find the 2–3 digit capacity code (BTU/h × 1,000) — e.g. MXZ-4C<strong>36</strong>NAHZ2 → 36÷12 = <strong>3 tons</strong> · PUZ-A<strong>24</strong>NHA7 → 24÷12 = <strong>2 tons</strong></p>
+      <p class="hint" id="model-hint-goodman" style="display:none">Goodman: find the 2–3 digit BTU code in the model ÷ 12 = tons — e.g. GSXB4<strong>036</strong>10 → 3 tons · CAPF4<strong>860</strong>C6DB → <strong>60</strong> → 5 tons</p>
 
       <details class="guide-box" id="guide-model-lennox" style="display:none">
         <summary>Lennox model number &amp; capacity</summary>
@@ -296,6 +302,80 @@
           <div>Split-system condensers (UA/RA series): e.g. UA16AZ<strong>24</strong>AJ3 → 24÷12 = 2T · UA16AZ<strong>48</strong>AJ3 → 4T</div>
         </div>
         <div class="legend">Rheem and Ruud are sister brands — identical serial and model structure.</div>
+      </details>
+
+      <details class="guide-box" id="guide-model-coleman" style="display:none">
+        <summary>Coleman — model number &amp; capacity</summary>
+        <div class="inner">
+          <div>Coleman (York UPG) uses the same BTU code logic as York — find the 2–3 digit code in the model.</div>
+          <div>Code × 1,000 ÷ 12,000 = tons &nbsp;·&nbsp; Common: 018=1.5T · 024=2T · 036=3T · 048=4T · 060=5T · 072=6T · 090=7.5T</div>
+        </div>
+      </details>
+
+      <details class="guide-box" id="guide-serial-coleman" style="display:none">
+        <summary>How to read a Coleman serial number — 4 styles</summary>
+        <div class="inner">
+          <div><strong>Style 1 (Oct 2004+):</strong> <code>[Plant][Year digit][Month letter][Year digit][sequence]</code></div>
+          <div>Year = pos[1] + pos[3] combined &nbsp;·&nbsp; Month = pos[2] letter</div>
+          <div>Example: <code>W<strong>0</strong>K<strong>5</strong>896070</code> → Year=05=2005 · K=October → <strong>October 2005</strong></div>
+          <div style="margin-top:6px"><strong>Style 2 (1971–Oct 2004):</strong> <code>[Plant][Month letter][Year letter][Type letter][sequence]</code></div>
+          <div>Year = pos[2] letter (table) &nbsp;·&nbsp; Month = pos[1] letter (A=Jan…M=Dec)</div>
+          <div>Example: <code>W<strong>A</strong><strong>K</strong>M011379</code> → A=January · K=1980 or 2001 → <strong>January 1980/2001</strong></div>
+          <div>Year letters: A=1971/92 · B=72/93 · C=73/94 · D=74/95 · E=75/96 · F=76/97 · G=77/98 · H=78/99 · J=79/2000 · K=80/2001 · L=81/2002 · M=82/2003 · N=83/2004</div>
+          <div style="margin-top:6px"><strong>Style 3 (1992+, all digits):</strong> <code>[YY][MM][5-digit seq]</code></div>
+          <div>First 2 digits = year ≥ 92 &nbsp;·&nbsp; next 2 = month (01–12)</div>
+          <div>Example: <code><strong>99</strong><strong>06</strong>97368</code> → Year=1999 · Month=06=June → <strong>June 1999</strong></div>
+          <div style="margin-top:6px"><strong>Style 4 (pre-1992, all digits):</strong> <code>[MM][YY][6-digit seq]</code></div>
+          <div>First 2 digits = month (01–12) &nbsp;·&nbsp; next 2 = year</div>
+          <div>Example: <code><strong>01</strong><strong>88</strong>123456</code> → Month=01=January · Year=1988 → <strong>January 1988</strong></div>
+        </div>
+        <div class="legend">Style 2 years may be ambiguous (two possible decades) — use equipment condition to confirm. Style 1 began October 2004 under York UPG manufacturing.</div>
+      </details>
+
+      <details class="guide-box" id="guide-model-mitsubishi" style="display:none">
+        <summary>Mitsubishi — model number &amp; capacity</summary>
+        <div class="inner">
+          <div>Find the 2–3 digit capacity code (BTU/h × 1,000) in the model — it follows the family/type/zone prefix.</div>
+          <div>Code × 1,000 ÷ 12,000 = tons &nbsp;·&nbsp; e.g. MXZ-4C<strong>36</strong>NAHZ2-U → 3T · PUZ-A<strong>24</strong>NHA7-BS → 2T</div>
+          <div>Common codes: 09=0.75T · 12=1T · 15=1.25T · 18=1.5T · 24=2T · 30=2.5T · 36=3T · 42=3.5T · 48=4T · 54=4.5T · 60=5T</div>
+          <div>Mini-split family prefix: <strong>M</strong>=Mini-split · <strong>S</strong>=Mini-split &nbsp;·&nbsp; Professional prefix: <strong>P</strong>=Professional</div>
+        </div>
+      </details>
+
+      <details class="guide-box" id="guide-serial-mitsubishi" style="display:none">
+        <summary>How to read a Mitsubishi serial number</summary>
+        <div class="inner">
+          <div><strong>Style 1:</strong> 1st digit = last digit of year (decade must be assumed) · 2nd character = month</div>
+          <div>Month encoding: <strong>1–9</strong> = Jan–Sep &nbsp;·&nbsp; <strong>X</strong> = Oct &nbsp;·&nbsp; <strong>Y</strong> = Nov &nbsp;·&nbsp; <strong>Z</strong> = Dec</div>
+          <div>Example: <code><strong>8</strong><strong>9</strong>D00488D</code> → Year=8 → <strong>2008 or 2018</strong> · Month=9=September</div>
+          <div>Example: <code><strong>7</strong><strong>0</strong>03261T</code> → Year=7 → <strong>2007 or 2017</strong> · Month=0 → unclear (check label for MFR date)</div>
+        </div>
+        <div class="legend">The decade cannot be determined from the serial alone — use equipment condition, refrigerant type (R-22 pre-2010, R-410A post-2010), or the MFR date on the data plate to confirm.</div>
+      </details>
+
+      <details class="guide-box" id="guide-model-goodman" style="display:none">
+        <summary>Goodman — model number &amp; capacity</summary>
+        <div class="inner">
+          <div>Find the 2–3 digit BTU code (×1,000) in the model — always divisible by 6.</div>
+          <div>Code × 1,000 ÷ 12,000 = tons &nbsp;·&nbsp; e.g. GSXB4<strong>036</strong>10 → 3T · CAPF4<strong>860</strong>C6DB → <strong>60</strong> → 5T</div>
+          <div>From Goodman nomenclature (pos 7–8 in split-system models): 18=1.5T · 24=2T · 30=2.5T · 36=3T · 42=3.5T · 48=4T · 60=5T</div>
+          <div>Note: In air handler models (CAPF, ARUF…) the code may appear embedded — look for 2–3 digits divisible by 6 or 12.</div>
+        </div>
+      </details>
+
+      <details class="guide-box" id="guide-serial-goodman" style="display:none">
+        <summary>How to read a Goodman serial number</summary>
+        <div class="inner">
+          <div><strong>Style 1 (all digits):</strong> <code>[YY][MM][sequence]</code></div>
+          <div>Pos 1–2 = 2-digit year · Pos 3–4 = 2-digit month (01–12)</div>
+          <div>Example: <code><strong>97</strong><strong>04</strong>011000</code> → Year=1997 · Month=04=April → <strong>April 1997</strong></div>
+          <div style="margin-top:6px"><strong>Style 2 (PTAC units only — ends in P or D):</strong> <code>[Factory][Month letter][Year letter][sequence][P or D]</code></div>
+          <div>Pos 1 = factory code (ignored) · Pos 2 = month letter · Pos 3 = year letter</div>
+          <div>Month letters: A=Jan · B=Feb · C=Mar · D=Apr · E=May · F=Jun · G=Jul · H=Aug · J=Sep · K=Oct · L=Nov · M=Dec</div>
+          <div>Year letters: A=1990 · B=91 · C=92 · D=93 · E=94 · F=95 · G=96 · H=97 · J=98 · K=99 · L=2000 · M=01 · N=02 · P=03 · Q=04 · R=05 · S=06 · T=07 · U=08 · V=09 · W=10 · X=11 · Y=12 · Z=13</div>
+          <div>Example: <code>5<strong>F</strong><strong>U</strong>5472618P</code> → F=June · U=2008 → <strong>June 2008</strong></div>
+        </div>
+        <div class="legend">Style 2 was used only on PTAC units made by Daikin for Goodman — always ends in the letter P or D. Style 1 is the standard format for all other Goodman equipment.</div>
       </details>
     </div>
 
@@ -1144,9 +1224,373 @@ function parseRheemSerial(raw) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// LENNOX — TONNAGE EXTRACTOR
+// COLEMAN — TONNAGE EXTRACTOR (MODEL NUMBER)
 //
-// Strategy: scan model string for the FIRST group of 2 or 3 digits
+// Coleman is a York UPG brand — same BTU code logic as York.
+// Find the first 2–3 digit group ≥ 18 in the model number.
+// Code × 1,000 ÷ 12,000 = tons.
+//
+// NOTE: 100% isolated. Only runs when brand === 'Coleman'.
+// ═══════════════════════════════════════════════════════════════
+
+function extractTonsColeman(model) {
+  if (!model) return null;
+  const m = model.trim().toUpperCase().replace(/[\s\-]/g, '');
+  const groups = [...m.matchAll(/\d{2,3}/g)];
+  for (const g of groups) {
+    const btuCode = parseInt(g[0].substring(0, 3), 10);
+    if (btuCode < 18) continue;
+    const tons = btuCode * 1000 / 12000;
+    const tonsRounded = Math.round(tons * 2) / 2;
+    if (tonsRounded < 0.5 || tonsRounded > 50) continue;
+    return {
+      tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
+      btu: btuCode * 1000,
+      codeUsed: g[0].substring(0, 3),
+      series: 'Coleman — BTU code in model (York UPG)',
+      posUsed: null
+    };
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COLEMAN — SERIAL NUMBER → MANUFACTURE DATE
+//
+// 4 styles, detected by pattern:
+//
+// Style 1 (Oct 2004+): [Plant letter][Year-A][Month letter][Year-B][6-digit seq]
+//   pos[0]=letter, pos[1]=digit, pos[2]=letter, pos[3]=digit
+//   Year = pos[1]+pos[3] combined as 2-digit year (e.g. "0"+"5"="05"=2005)
+//   Month = pos[2] letter (A=Jan…N=Dec, no I)
+//   Example: W0K5896070 → 0+5=05=2005, K=October → Oct 2005
+//
+// Style 2 (1971–Oct 2004): [Plant letter][Month letter][Year letter][Type letter][6-digit seq]
+//   pos[0..3] = 4 letters
+//   Month = pos[1] letter (A=Jan…M=Dec)
+//   Year  = pos[2] letter (lookup table, may be ambiguous)
+//   Example: WAKM011379 → A=January, K=1980 or 2001 → Jan 1980/2001
+//
+// Style 3 (1992+, all digits): [YY][MM][5-digit seq]
+//   pos[0..1] = year ≥ 92 → 19xx, or < 30 → 20xx
+//   pos[2..3] = month 01–12
+//   Example: 990697368 → 99=1999, 06=June → Jun 1999
+//
+// Style 4 (pre-1992, all digits): [MM][YY][6-digit seq]
+//   pos[0..1] = month 01–12
+//   pos[2..3] = year (2-digit → full year)
+//   Example: 0188123456 → 01=January, 88=1988 → Jan 1988
+//
+// NOTE: 100% isolated. Only runs when brand === 'Coleman'.
+// ═══════════════════════════════════════════════════════════════
+
+const COLEMAN_MONTH_LETTERS = {
+  A:1, B:2, C:3, D:4, E:5, F:6, G:7, H:8, J:9, K:10, L:11, M:12, N:12
+  // N=December per Style 2 chart
+};
+
+const COLEMAN_YEAR_LETTERS_S2 = {
+  A:[1971,1992], B:[1972,1993], C:[1973,1994], D:[1974,1995], E:[1975,1996],
+  F:[1976,1997], G:[1977,1998], H:[1978,1999], J:[1979,2000], K:[1980,2001],
+  L:[1981,2002], M:[1982,2003], N:[1983,2004]
+};
+
+function parseColemanSerial(raw) {
+  const s = raw.trim().toUpperCase().replace(/\s+/g, '');
+  if (s.length < 8) return null;
+
+  // ── Style 1: Letter·Digit·Letter·Digit·… (Oct 2004+) ──
+  if (
+    /^[A-Z]$/.test(s[0]) &&
+    /^\d$/.test(s[1]) &&
+    /^[A-Z]$/.test(s[2]) &&
+    /^\d$/.test(s[3]) &&
+    COLEMAN_MONTH_LETTERS[s[2]] !== undefined
+  ) {
+    const yr2  = parseInt(s[1] + s[3], 10);   // combine pos[1]+pos[3]
+    const year = yr2 <= 30 ? 2000 + yr2 : 1900 + yr2;
+    const month = COLEMAN_MONTH_LETTERS[s[2]];
+    if (year >= 2004 && year <= 2040) {
+      return { year, month, style: 'Style 1 (2004+) — Plant·YearA·Month·YearB', ambiguous: false };
+    }
+  }
+
+  // ── Style 2: 4 letters at start (pre-Oct 2004) ──
+  if (/^[A-Z]{4}/.test(s)) {
+    const monthLetter = s[1];
+    const yearLetter  = s[2];
+    const month = COLEMAN_MONTH_LETTERS[monthLetter];
+    const years = COLEMAN_YEAR_LETTERS_S2[yearLetter];
+    if (month && years) {
+      return {
+        year: years[0],
+        yearAlt: years[1],
+        month,
+        style: 'Style 2 (1971–2004) — Plant·Month·Year·Type',
+        ambiguous: true,
+        yearLabel: `${years[0]} or ${years[1]}`,
+        ambiguousNote: `Year could be ${years[0]} or ${years[1]} — check equipment condition`
+      };
+    }
+  }
+
+  // ── Styles 3 & 4: all digits ──
+  if (/^\d{8,}/.test(s)) {
+    const first2  = parseInt(s.substring(0, 2), 10);
+    const second2 = parseInt(s.substring(2, 4), 10);
+
+    // Style 3 (1992+): first 2 = year ≥ 30 (i.e. 1930+) or ≤ 30 but second 2 is valid month
+    // Key distinction: in Style 3 pos[0..1]=year, pos[2..3]=month
+    //   In Style 4: pos[0..1]=month (01-12), pos[2..3]=year
+    // Heuristic: if first2 >= 30 it's a year → Style 3
+    //            if first2 <= 12 and second2 could be a year → Style 4
+    if (first2 >= 30) {
+      // Style 3: first2 = 2-digit year, second2 = month
+      const year  = first2 >= 30 ? 1900 + first2 : 2000 + first2;
+      const month = second2;
+      if (month >= 1 && month <= 12 && year >= 1930 && year <= 2030) {
+        return { year, month, style: 'Style 3 (1992+) — YY·MM·sequence', ambiguous: false };
+      }
+    } else if (first2 >= 1 && first2 <= 12) {
+      // Style 4 (pre-1992): first2 = month, second2 = year
+      const month = first2;
+      const yr2   = second2;
+      const year  = yr2 <= 30 ? 2000 + yr2 : 1900 + yr2;
+      if (year >= 1950 && year <= 2040) {
+        return { year, month, style: 'Style 4 (pre-1992) — MM·YY·sequence', ambiguous: false };
+      }
+    }
+  }
+
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MITSUBISHI — TONNAGE EXTRACTOR (MODEL NUMBER)
+//
+// Find the first 2–3 digit capacity code (BTU/h × 1,000) in the model.
+// Code × 1,000 ÷ 12,000 = tons.
+//
+// The code follows the family/type/zone prefix letters (typically
+// after a dash or after the first all-letter segment).
+//
+// Examples:
+//   MXZ-4C36NAHZ2-U  → "36" → 3.0 tons
+//   PUZ-A24NHA7-BS   → "24" → 2.0 tons
+//   MSZ-GL18NA       → "18" → 1.5 tons
+//   MUY-GL24NA       → "24" → 2.0 tons
+//
+// Min threshold = 9 (smallest Mitsubishi unit = 9,000 BTU = 0.75T)
+// NOTE: 100% isolated. Only runs when brand === 'Mitsubishi'.
+// ═══════════════════════════════════════════════════════════════
+
+function extractTonsMitsubishi(model) {
+  if (!model) return null;
+  const m = model.trim().toUpperCase().replace(/[\s]/g, '');
+  const groups = [...m.matchAll(/\d{2,3}/g)];
+  for (const g of groups) {
+    const btuCode = parseInt(g[0].substring(0, 3), 10);
+    if (btuCode < 9) continue;
+    const tons = btuCode * 1000 / 12000;
+    const tonsRounded = Math.round(tons * 2) / 2;
+    if (tonsRounded < 0.5 || tonsRounded > 50) continue;
+    return {
+      tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
+      btu: btuCode * 1000,
+      codeUsed: g[0].substring(0, 3),
+      series: 'Mitsubishi — capacity code in model (BTU/h × 1,000)',
+      posUsed: null
+    };
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MITSUBISHI — SERIAL NUMBER → MANUFACTURE DATE
+//
+// Style 1 (only known style):
+//   Position 1 = last digit of year (decade must be assumed)
+//   Position 2 = month code:
+//     1–9  → January–September
+//     X    → October
+//     Y    → November
+//     Z    → December
+//     0    → unknown/unclear
+//   Positions 3+ = sequence — ignored
+//
+// Because only ONE digit encodes the year, the decade is ambiguous.
+// We return BOTH possible years (e.g. 2008 and 2018).
+//
+// Examples:
+//   89D00488D → year digit=8 → 2008 or 2018 · month=9 → September
+//   7003261T  → year digit=7 → 2007 or 2017 · month=0 → unclear
+//   8X...     → year=8 → 2008/2018 · X → October
+//
+// NOTE: 100% isolated. Only runs when brand === 'Mitsubishi'.
+// ═══════════════════════════════════════════════════════════════
+
+const MITSUBISHI_MONTH_MAP = {
+  '1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,
+  'X':10,'Y':11,'Z':12
+};
+
+function parseMitsubishiSerial(raw) {
+  const s = raw.trim().toUpperCase().replace(/\s+/g, '');
+  if (s.length < 2) return null;
+
+  const yearDigit = parseInt(s[0], 10);
+  if (isNaN(yearDigit)) return null;  // first char must be a digit
+
+  // Build the two most plausible years: the two most recent decades where
+  // the last digit matches yearDigit, neither in the future
+  const currentYear = new Date().getFullYear();
+  // Candidate years in descending order
+  let year1 = null, year2 = null;
+  for (let base = currentYear; base >= 1950; base--) {
+    if (base % 10 === yearDigit && base <= currentYear) {
+      if (year1 === null) year1 = base;
+      else if (year2 === null) { year2 = base; break; }
+    }
+  }
+
+  // Month from 2nd character
+  const monthChar = s[1];
+  const month = MITSUBISHI_MONTH_MAP[monthChar] || null;
+
+  return {
+    year:    year1,
+    yearAlt: year2,
+    month,
+    style:   'Style 1 — 1-digit year (decade ambiguous) · month code',
+    ambiguous: true,
+    yearLabel: `${year2} or ${year1}`,
+    ambiguousNote: `Year is ${year2} or ${year1} — use refrigerant type or equipment condition to confirm`
+  };}
+
+// ═══════════════════════════════════════════════════════════════
+// GOODMAN — TONNAGE EXTRACTOR (MODEL NUMBER)
+//
+// Find the first 2–3 digit BTU code (×1,000) in the model.
+// Same divisible-by-6 logic as other brands.
+//
+// Examples:
+//   GSXB403610    → "036" → 3.0 tons
+//   CAPF4860C6DB  → "60"  → 5.0 tons  (embedded after "48")
+//   GSX140361AA   → "036" → 3.0 tons
+//   ARUF486016    → "48"  → 4.0 tons
+//
+// NOTE: In air-handler models with multiple digit groups the BTU code
+// is the first group ≥ 18 that produces a valid half-ton result.
+// 100% isolated. Only runs when brand === 'Goodman'.
+// ═══════════════════════════════════════════════════════════════
+
+function extractTonsGoodman(model) {
+  if (!model) return null;
+  const m = model.trim().toUpperCase().replace(/[\s\-]/g, '');
+
+  // ── Special case: Goodman coil models (CAPF, CHPF, AVPF…) ──
+  // In these models a 4-digit block like "4860" where the LAST 2 digits
+  // are the nominal BTU code (60=5T). Only applies to models starting with CAPF/CHPF/AVPF.
+  if (/^(CAPF|CHPF|AVPF|CAUF|CAPF)/.test(m)) {
+    const fourDigit = m.match(/\d{4}/);
+    if (fourDigit) {
+      const block   = fourDigit[0];
+      const lastTwo = parseInt(block.substring(2, 4), 10);
+      if (lastTwo >= 18 && lastTwo % 6 === 0) {
+        const tonsRounded = Math.round(lastTwo * 1000 / 12000 * 2) / 2;
+        if (tonsRounded >= 1 && tonsRounded <= 10) {
+          return {
+            tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
+            btu: lastTwo * 1000,
+            codeUsed: String(lastTwo).padStart(2, '0'),
+            series: 'Goodman air handler — BTU code (last 2 of 4-digit block)',
+            posUsed: null
+          };
+        }
+      }
+    }
+  }
+
+  // ── General: scan all digit groups for first valid BTU code ÷ 6 ──
+  const groups = [...m.matchAll(/\d{2,}/g)];
+  const candidates = [];
+  for (const g of groups) {
+    const raw = g[0];
+    for (let start = 0; start < raw.length; start++) {
+      for (const len of [3, 2]) {
+        if (start + len > raw.length) continue;
+        const btuCode = parseInt(raw.substring(start, start + len), 10);
+        if (btuCode < 18 || btuCode % 6 !== 0) continue;
+        const tonsRounded = Math.round(btuCode * 1000 / 12000 * 2) / 2;
+        if (tonsRounded < 1 || tonsRounded > 10) continue;
+        candidates.push({ btuCode, tonsRounded, code: raw.substring(start, start + len), pos: g.index + start });
+      }
+    }
+  }
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => a.pos - b.pos || b.code.length - a.code.length);
+  const best = candidates[0];
+  return {
+    tons: String(best.tonsRounded % 1 === 0 ? best.tonsRounded.toFixed(1) : best.tonsRounded),
+    btu: best.btuCode * 1000,
+    codeUsed: best.code,
+    series: 'Goodman — BTU code in model (÷6)',
+    posUsed: null
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GOODMAN — SERIAL NUMBER → MANUFACTURE DATE
+//
+// Style 1 (standard — all digits):
+//   Pos 1–2 = 2-digit year · Pos 3–4 = 2-digit month (01–12)
+//   Example: 9704011000 → 97=1997, 04=April → April 1997
+//
+// Style 2 (PTAC only — ends in P or D):
+//   Pos 1   = factory code (letter, ignored)
+//   Pos 2   = month letter (A=Jan … M=Dec, no I)
+//   Pos 3   = year letter (A=1990 … Z=2013)
+//   Pos 4+  = sequence · last char = P or D
+//   Example: 5FU5472618P → F=June, U=2008 → June 2008
+//
+// Detection: if starts with digit → Style 1; if starts with letter → Style 2
+// NOTE: 100% isolated. Only runs when brand === 'Goodman'.
+// ═══════════════════════════════════════════════════════════════
+
+const GOODMAN_MONTH_LETTERS = {
+  A:1, B:2, C:3, D:4, E:5, F:6, G:7, H:8, J:9, K:10, L:11, M:12
+};
+
+const GOODMAN_YEAR_LETTERS = {
+  A:1990, B:1991, C:1992, D:1993, E:1994, F:1995, G:1996, H:1997,
+  J:1998, K:1999, L:2000, M:2001, N:2002, P:2003, Q:2004, R:2005,
+  S:2006, T:2007, U:2008, V:2009, W:2010, X:2011, Y:2012, Z:2013
+};
+
+function parseGoodmanSerial(raw) {
+  const s = raw.trim().toUpperCase().replace(/\s+/g, '');
+  if (s.length < 6) return null;
+
+  // ── Style 2 check first: ends in P or D, pos[1]=valid month letter, pos[2]=valid year letter ──
+  // (PTAC units — may start with digit OR letter)
+  if (/[PD]$/.test(s) && GOODMAN_MONTH_LETTERS[s[1]] && GOODMAN_YEAR_LETTERS[s[2]]) {
+    const month = GOODMAN_MONTH_LETTERS[s[1]];
+    const year  = GOODMAN_YEAR_LETTERS[s[2]];
+    return { year, month, style: 'Style 2 (PTAC) — Factory·Month·Year·seq·P/D', ambiguous: false };
+  }
+
+  // ── Style 1: starts with digit, pos[0-1]=year, pos[2-3]=month ──
+  if (/^\d/.test(s)) {
+    const yr2   = parseInt(s.substring(0, 2), 10);
+    const month = parseInt(s.substring(2, 4), 10);
+    if (month < 1 || month > 12) return null;
+    const year = yr2 <= 30 ? 2000 + yr2 : 1900 + yr2;
+    if (year < 1950 || year > 2040) return null;
+    return { year, month, style: 'Style 1 — YY·MM·sequence', ambiguous: false };
+  }
+
+  return null;
+}
 // (same approach as York but isolated). That code × 1,000 ÷ 12,000 = tons.
 //
 // Examples:
@@ -1246,6 +1690,9 @@ function parseSerial(brand, raw) {
     case 'General Electric': return parseTraneSerial(raw);
     case 'Rheem':
     case 'Ruud':             return parseRheemSerial(raw);
+    case 'Coleman':          return parseColemanSerial(raw);
+    case 'Mitsubishi':       return parseMitsubishiSerial(raw);
+    case 'Goodman':          return parseGoodmanSerial(raw);
     default:        return null;
   }
 }
@@ -1444,6 +1891,12 @@ function checkHVAC() {
       tonsResult = extractTonsTrane(model);
     else if (brand === 'Rheem' || brand === 'Ruud')
       tonsResult = extractTonsRheem(model);
+    else if (brand === 'Coleman')
+      tonsResult = extractTonsColeman(model);
+    else if (brand === 'Mitsubishi')
+      tonsResult = extractTonsMitsubishi(model);
+    else if (brand === 'Goodman')
+      tonsResult = extractTonsGoodman(model);
   }
 
   const dateResult = serial ? parseSerial(brand, serial) : null;
@@ -1515,7 +1968,9 @@ function checkHVAC() {
             ? 'Trane/AS serials must start with digits: 2002–2009 → 1st digit=year, 2nd–3rd=week (e.g. 91531S41F = week 15 of 2009). 2010+ → 1st–2nd digits=year, 3rd–4th=week (e.g. 10161KEDAA = week 16 of 2010).'
             : (brand === 'Rheem' || brand === 'Ruud')
               ? 'Rheem/Ruud serials: Letter + 2-digit week + 2-digit year + sequence (e.g. W291013412 → plant W, week 29, year 2010 = ~July 2010).'
-              : 'Carrier serials must start with 4 digits (WWYY). Double-check the number from the rating plate.';
+              : brand === 'Mitsubishi'
+                ? 'Mitsubishi serials: 1st digit=last digit of year · 2nd char=month (1–9=Jan–Sep, X=Oct, Y=Nov, Z=Dec). e.g. 89D00488D → year 2008/2018, month=September.'
+                : 'Carrier serials must start with 4 digits (WWYY). Double-check the number from the rating plate.';
       metricsHTML += `
         <div class="metric-box">
           <div class="metric-label">📅 Manufacture Date</div>
@@ -1580,25 +2035,37 @@ function updateBrandHints() {
   const isYork    = brand === 'York';
   const isTrane   = ['Trane','American Standard','Ameristar','Oxbox','General Electric'].includes(brand);
   const isRheem   = brand === 'Rheem' || brand === 'Ruud';
+  const isColeman   = brand === 'Coleman';
+  const isMitsubishi = brand === 'Mitsubishi';
+  const isGoodman    = brand === 'Goodman';
 
-  document.getElementById('model-hint-carrier').style.display    = isCarrier ? '' : 'none';
-  document.getElementById('model-hint-lennox').style.display     = isLennox  ? '' : 'none';
-  document.getElementById('model-hint-york').style.display       = isYork    ? '' : 'none';
-  document.getElementById('model-hint-trane').style.display      = isTrane   ? '' : 'none';
-  document.getElementById('model-hint-ameristar').style.display  = 'none';
-  document.getElementById('model-hint-rheem').style.display      = isRheem   ? '' : 'none';
+  document.getElementById('model-hint-carrier').style.display     = isCarrier    ? '' : 'none';
+  document.getElementById('model-hint-lennox').style.display      = isLennox     ? '' : 'none';
+  document.getElementById('model-hint-york').style.display        = isYork       ? '' : 'none';
+  document.getElementById('model-hint-trane').style.display       = isTrane      ? '' : 'none';
+  document.getElementById('model-hint-ameristar').style.display   = 'none';
+  document.getElementById('model-hint-rheem').style.display       = isRheem      ? '' : 'none';
+  document.getElementById('model-hint-coleman').style.display     = isColeman    ? '' : 'none';
+  document.getElementById('model-hint-mitsubishi').style.display  = isMitsubishi ? '' : 'none';
+  document.getElementById('model-hint-goodman').style.display     = isGoodman    ? '' : 'none';
 
-  document.getElementById('guide-model-carrier').style.display   = isCarrier ? '' : 'none';
-  document.getElementById('guide-model-lennox').style.display    = isLennox  ? '' : 'none';
-  document.getElementById('guide-model-york').style.display      = isYork    ? '' : 'none';
-  document.getElementById('guide-model-trane').style.display     = isTrane   ? '' : 'none';
-  document.getElementById('guide-model-rheem').style.display     = isRheem   ? '' : 'none';
+  document.getElementById('guide-model-carrier').style.display    = isCarrier    ? '' : 'none';
+  document.getElementById('guide-model-lennox').style.display     = isLennox     ? '' : 'none';
+  document.getElementById('guide-model-york').style.display       = isYork       ? '' : 'none';
+  document.getElementById('guide-model-trane').style.display      = isTrane      ? '' : 'none';
+  document.getElementById('guide-model-rheem').style.display      = isRheem      ? '' : 'none';
+  document.getElementById('guide-model-coleman').style.display    = isColeman    ? '' : 'none';
+  document.getElementById('guide-model-mitsubishi').style.display = isMitsubishi ? '' : 'none';
+  document.getElementById('guide-model-goodman').style.display    = isGoodman    ? '' : 'none';
 
-  document.getElementById('guide-serial-carrier').style.display  = isCarrier ? '' : 'none';
-  document.getElementById('guide-serial-lennox').style.display   = isLennox  ? '' : 'none';
-  document.getElementById('guide-serial-york').style.display     = isYork    ? '' : 'none';
-  document.getElementById('guide-serial-trane').style.display    = isTrane   ? '' : 'none';
-  document.getElementById('guide-serial-rheem').style.display    = isRheem   ? '' : 'none';
+  document.getElementById('guide-serial-carrier').style.display   = isCarrier    ? '' : 'none';
+  document.getElementById('guide-serial-lennox').style.display    = isLennox     ? '' : 'none';
+  document.getElementById('guide-serial-york').style.display      = isYork       ? '' : 'none';
+  document.getElementById('guide-serial-trane').style.display     = isTrane      ? '' : 'none';
+  document.getElementById('guide-serial-rheem').style.display     = isRheem      ? '' : 'none';
+  document.getElementById('guide-serial-coleman').style.display   = isColeman    ? '' : 'none';
+  document.getElementById('guide-serial-mitsubishi').style.display= isMitsubishi ? '' : 'none';
+  document.getElementById('guide-serial-goodman').style.display   = isGoodman    ? '' : 'none';
 }
 
 document.getElementById('brand-select').addEventListener('change', updateBrandHints);
