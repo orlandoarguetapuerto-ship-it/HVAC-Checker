@@ -128,10 +128,6 @@
     .modal-field input, .modal-field select, .modal-field textarea { width:100%; padding:9px 12px; border:1.5px solid #e0e0e0; border-radius:9px; font-size:14px; font-family:inherit; box-sizing:border-box; transition:border .2s; }
     .modal-field input:focus, .modal-field textarea:focus { outline:none; border-color:#e8854a; }
     .modal-field textarea { resize:vertical; min-height:70px; }
-    .modal-file-label { display:flex; align-items:center; gap:8px; padding:9px 12px; border:1.5px dashed #d0d0d0; border-radius:9px; cursor:pointer; font-size:13px; color:#888; transition:border .2s; }
-    .modal-file-label:hover { border-color:#e8854a; color:#c26a2a; }
-    .modal-file-label input[type=file] { display:none; }
-    .file-name-display { font-size:12px; color:#a0a0a0; margin-top:4px; }
     .modal-actions { display:flex; gap:10px; margin-top:18px; }
     .btn-modal-send { flex:1; background:linear-gradient(135deg,#f5a05a,#e8854a); color:#fff; border:none; border-radius:10px; padding:11px; font-size:14px; font-weight:700; cursor:pointer; transition:opacity .2s; }
     .btn-modal-send:hover { opacity:.9; }
@@ -572,15 +568,6 @@
         <label>What was wrong? (optional)</label>
         <textarea id="rep-notes" placeholder="e.g. Wrong tonnage shown, date not found, brand missing…"></textarea>
       </div>
-      <div class="modal-field">
-        <label>Attach a photo of the label (optional)</label>
-        <label class="modal-file-label" for="rep-file">
-          📎 Click to attach image (JPG, PNG, HEIC)
-          <input type="file" id="rep-file" accept="image/*" onchange="updateFileName(this)" />
-        </label>
-        <div class="file-name-display" id="file-name-display"></div>
-      </div>
-
       <div class="modal-actions">
         <button class="btn-modal-cancel" onclick="closeReportModal()">Cancel</button>
         <button class="btn-modal-send" onclick="sendReport()">
@@ -2224,10 +2211,9 @@ function sendReport() {
   const model  = document.getElementById('rep-model').value.trim();
   const serial = document.getElementById('rep-serial').value.trim();
   const notes  = document.getElementById('rep-notes').value.trim();
-  const file   = document.getElementById('rep-file').files[0];
 
-  if (!brand && !model && !serial && !notes && !file) {
-    alert('Please fill in at least one field or attach a photo.');
+  if (!brand && !model && !serial && !notes) {
+    alert('Please fill in at least one field.');
     return;
   }
 
@@ -2235,7 +2221,6 @@ function sendReport() {
   btn.disabled = true;
   btn.textContent = 'Sending…';
 
-  // Use FormData so the image file is sent as a real attachment
   const fd = new FormData();
   fd.append('access_key', 'fd030414-3acc-4ad9-8d3d-4f4b37e9c18f');
   fd.append('subject',    'HVAC Checker — Model Report' + (brand ? ' · ' + brand : ''));
@@ -2243,11 +2228,9 @@ function sendReport() {
   fd.append('model',      model  || '—');
   fd.append('serial',     serial || '—');
   fd.append('notes',      notes  || '—');
-  if (file) fd.append('attachment', file); // real file attachment
 
   fetch('https://api.web3forms.com/submit', {
     method: 'POST',
-    // No Content-Type header — browser sets it automatically with multipart boundary
     body: fd
   })
   .then(res => res.json())
@@ -2257,8 +2240,6 @@ function sendReport() {
     if (data.success) {
       closeReportModal();
       ['rep-brand','rep-model','rep-serial','rep-notes'].forEach(id => document.getElementById(id).value = '');
-      document.getElementById('rep-file').value = '';
-      document.getElementById('file-name-display').textContent = '';
       document.getElementById('success-overlay').classList.add('show');
     } else {
       alert('Could not send the report. Please try again.');
