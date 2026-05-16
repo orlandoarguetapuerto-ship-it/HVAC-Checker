@@ -1892,24 +1892,43 @@ function extractTonsYork(model) {
   if (!model) return null;
   const m = model.trim().toUpperCase().replace(/[\s\-]/g, '');
 
-  // Find ALL consecutive digit groups of 2 or more digits
+  // ── Special case: York Packaged AC (ZQ, ZX, ZY, ZL prefix) ──
+  // These models use a nominal capacity CODE, NOT a BTU code.
+  // The 2-digit code at positions 3–4 maps to tonnage via a lookup table.
+  // From York 3-12.5 Ton Nomenclature:
+  //   04=3T · 05=4T · 06=5T · 07=6T · A7=6T · 08=7.5T · 09=8.5T · 12=10T · 14=12.5T
+  const YORK_PKG_TONS = {
+    '04': 3.0, '05': 4.0, '06': 5.0, '07': 6.0,
+    'A7': 6.0, '08': 7.5, '09': 8.5, '12': 10.0, '14': 12.5
+  };
+  if (/^(ZQ|ZX|ZY|ZL)/.test(m) && m.length >= 5) {
+    // Format: ZX G 04 D 2 A ...  → pos[2..3] = capacity code
+    const capCode = m.substring(3, 5); // e.g. "04", "12", "A7"
+    const tons = YORK_PKG_TONS[capCode];
+    if (tons !== undefined) {
+      return {
+        tons: String(tons % 1 === 0 ? tons.toFixed(1) : tons),
+        btu: tons * 12000,
+        codeUsed: capCode,
+        series: 'York Packaged AC (ZQ/ZX/ZY/ZL) — capacity code lookup table',
+        posUsed: 'positions 4–5'
+      };
+    }
+  }
+
+  // ── General York: find first 2–3 digit BTU group ──
   const groups = [...m.matchAll(/\d{2,}/g)];
-
   for (const g of groups) {
-    // Take at most 3 digits from the start of the group
-    const code    = g[0].substring(0, 3).replace(/^0+(?=\d)/, '') || g[0].substring(0, 3);
-    const btuCode = parseInt(g[0].substring(0, 3), 10); // keep leading zeros for 3-digit like 036
-    if (btuCode < 6) continue; // skip implausibly small codes
-
+    const btuCode = parseInt(g[0].substring(0, 3), 10);
+    if (btuCode < 6) continue;
     const btu  = btuCode * 1000;
     const tons = btu / 12000;
-    const tonsRounded = Math.round(tons * 2) / 2; // nearest 0.5
-
+    const tonsRounded = Math.round(tons * 2) / 2;
     return {
       tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
       btu,
       codeUsed: g[0].substring(0, 3),
-      series: 'York — first BTU digit group in model',
+      series: 'York — BTU code in model',
       posUsed: null
     };
   }
@@ -2216,20 +2235,20 @@ function sendReport() {
   btn.disabled = true;
   btn.textContent = 'Sending…';
 
-  const payload = {
-    access_key: 'fd030414-3acc-4ad9-8d3d-4f4b37e9c18f',
-    subject:    'HVAC Checker — Model Report' + (brand ? ' · ' + brand : ''),
-    brand:      brand  || '—',
-    model:      model  || '—',
-    serial:     serial || '—',
-    notes:      notes  || '—',
-    file_name:  file   ? file.name : 'No file attached',
-  };
+  // Use FormData so the image file is sent as a real attachment
+  const fd = new FormData();
+  fd.append('access_key', 'fd030414-3acc-4ad9-8d3d-4f4b37e9c18f');
+  fd.append('subject',    'HVAC Checker — Model Report' + (brand ? ' · ' + brand : ''));
+  fd.append('brand',      brand  || '—');
+  fd.append('model',      model  || '—');
+  fd.append('serial',     serial || '—');
+  fd.append('notes',      notes  || '—');
+  if (file) fd.append('attachment', file); // real file attachment
 
   fetch('https://api.web3forms.com/submit', {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body:    JSON.stringify(payload)
+    method: 'POST',
+    // No Content-Type header — browser sets it automatically with multipart boundary
+    body: fd
   })
   .then(res => res.json())
   .then((data) => {
