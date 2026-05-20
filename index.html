@@ -2226,15 +2226,21 @@ function checkHVAC() {
   document.getElementById('info-table').innerHTML    = infoHTML;
 
   // ── Log silencioso a Google Sheets ──
+  const _safe = (v) => {
+    if (v === null || v === undefined || v === '') return '';
+    if (v instanceof Date) return '';
+    if (typeof v === 'object') return '';
+    return String(v);
+  };
   logConsulta({
-    brand:  brand,
-    model:  model,
-    serial: serial,
-    tons:   (tonsResult && tonsResult.tons) ? tonsResult.tons : '',
-    btu:    (tonsResult && tonsResult.btu)  ? tonsResult.btu  : '',
-    year:   (dateResult && dateResult.year)  ? dateResult.year  : '',
-    month:  (dateResult && dateResult.month) ? dateResult.month : '',
-    age:    (dateResult && dateResult.age)   ? dateResult.age   : '',
+    brand:  _safe(brand),
+    model:  _safe(model),
+    serial: _safe(serial),
+    tons:   _safe(tonsResult && tonsResult.tons),
+    btu:    _safe(tonsResult && tonsResult.btu),
+    year:   _safe(dateResult && dateResult.year),
+    month:  _safe(dateResult && dateResult.month),
+    age:    _safe(dateResult && dateResult.age),
     status: ((tonsResult && tonsResult.tons) || (dateResult && dateResult.year)) ? 'ok'
           : (tonsResult || dateResult) ? 'partial' : 'empty'
   });
