@@ -2233,9 +2233,9 @@ function checkHVAC() {
     return String(v);
   };
   // ── Lógica de status ──
-  // ok      = se obtuvo lo que se pidió (si ingresó model → se sacaron tons; si ingresó serial → se sacó año)
-  // partial = se ingresaron ambos pero solo uno dio resultado
-  // failed  = se ingresó algo pero no se pudo dar ningún resultado útil
+  // ok      = se obtuvo lo que se pidió
+  // partial = ingresó model + serial pero solo uno funcionó
+  // failed  = no se pudo dar ningún resultado útil
   const gotTons = !!(tonsResult && tonsResult.tons);
   const gotDate = !!(dateResult && dateResult.year);
   let _status;
@@ -2506,12 +2506,12 @@ function renderStats() {
   const failed  = _adminRows.filter(r => (r.Status || r.status) === 'failed').length;
   const partial = _adminRows.filter(r => (r.Status || r.status) === 'partial').length;
   document.getElementById('admin-stats').innerHTML = `
-    <div class="admin-stat"><div class="l">Total consultas</div><div class="v">${total}</div></div>
-    <div class="admin-stat"><div class="l">Hoy</div><div class="v">${today}</div></div>
-    <div class="admin-stat"><div class="l">Marcas distintas</div><div class="v">${brands}</div></div>
-    <div class="admin-stat"><div class="l" style="color:#1d8a3a;">Exitosas</div><div class="v" style="color:#1d8a3a;">${ok}</div></div>
-    <div class="admin-stat"><div class="l" style="color:#b8810a;">Parciales</div><div class="v" style="color:#b8810a;">${partial}</div></div>
-    <div class="admin-stat"><div class="l" style="color:#a32d2d;">Fallidas</div><div class="v" style="color:#a32d2d;">${failed}</div></div>
+    <div class="admin-stat"><div class="l">Total queries</div><div class="v">${total}</div></div>
+    <div class="admin-stat"><div class="l">Today</div><div class="v">${today}</div></div>
+    <div class="admin-stat"><div class="l">Brands</div><div class="v">${brands}</div></div>
+    <div class="admin-stat"><div class="l" style="color:#1d8a3a;">Completed</div><div class="v" style="color:#1d8a3a;">${ok}</div></div>
+    <div class="admin-stat"><div class="l" style="color:#b8810a;">Partial</div><div class="v" style="color:#b8810a;">${partial}</div></div>
+    <div class="admin-stat"><div class="l" style="color:#a32d2d;">Failed</div><div class="v" style="color:#a32d2d;">${failed}</div></div>
   `;
 }
 function getFilteredRows() {
@@ -2586,13 +2586,15 @@ function renderAdminTable() {
     const tons   = fmtTons(pick(r, 'Tons', 'tons'));
     const mes    = fmtMes(pick(r, 'Mes', 'month'));
     const anio   = noDate(pick(r, 'Año', 'year'));
-    const status = pick(r, 'Status', 'status');
     const pais   = pick(r, 'País/TZ', 'country');
+    // Normalizar status viejos: empty -> failed
+    let statusFinal = pick(r, 'Status', 'status');
+    if (statusFinal === 'empty') statusFinal = 'failed';
     // Pintar status con color
-    const statusHTML = status === 'ok'      ? `<span style="color:#1d8a3a;font-weight:600;">${status}</span>`
-                     : status === 'partial' ? `<span style="color:#b8810a;font-weight:600;">${status}</span>`
-                     : status === 'failed'  ? `<span style="color:#a32d2d;font-weight:600;">${status}</span>`
-                     : status;
+    const statusHTML = statusFinal === 'ok'      ? `<span style="color:#1d8a3a;font-weight:600;">${statusFinal}</span>`
+                     : statusFinal === 'partial' ? `<span style="color:#b8810a;font-weight:600;">${statusFinal}</span>`
+                     : statusFinal === 'failed'  ? `<span style="color:#a32d2d;font-weight:600;">${statusFinal}</span>`
+                     : statusFinal;
     return `
     <tr>
       <td>${fecha}</td>
