@@ -2232,6 +2232,25 @@ function checkHVAC() {
     if (typeof v === 'object') return '';
     return String(v);
   };
+  // ── Lógica de status ──
+  // ok      = se obtuvo lo que se pidió (si ingresó model → se sacaron tons; si ingresó serial → se sacó año)
+  // partial = se ingresaron ambos pero solo uno dio resultado
+  // failed  = se ingresó algo pero no se pudo dar ningún resultado útil
+  const gotTons = !!(tonsResult && tonsResult.tons);
+  const gotDate = !!(dateResult && dateResult.year);
+  let _status;
+  if (model && serial) {
+    if (gotTons && gotDate)        _status = 'ok';
+    else if (gotTons || gotDate)   _status = 'partial';
+    else                           _status = 'failed';
+  } else if (model && !serial) {
+    _status = gotTons ? 'ok' : 'failed';
+  } else if (!model && serial) {
+    _status = gotDate ? 'ok' : 'failed';
+  } else {
+    _status = 'failed';
+  }
+
   logConsulta({
     brand:  _safe(brand),
     model:  _safe(model),
@@ -2240,8 +2259,7 @@ function checkHVAC() {
     btu:    _safe(tonsResult && tonsResult.btu),
     year:   _safe(dateResult && dateResult.year),
     month:  _safe(dateResult && dateResult.month),
-    status: ((tonsResult && tonsResult.tons) || (dateResult && dateResult.year)) ? 'ok'
-          : (tonsResult || dateResult) ? 'partial' : 'empty'
+    status: _status
   });
 
   document.getElementById('form-section').style.display   = 'none';
@@ -2419,7 +2437,7 @@ document.getElementById('report-modal').addEventListener('click', function(e) {
           <thead>
             <tr>
               <th>Fecha</th><th>Marca</th><th>Modelo</th><th>Serial</th>
-              <th>Tons</th><th>Año</th><th>Status</th><th>País/TZ</th>
+              <th>Tons</th><th>Mes</th><th>Año</th><th>Status</th><th>País/TZ</th>
             </tr>
           </thead>
           <tbody id="admin-table-body"></tbody>
@@ -2484,12 +2502,16 @@ function renderStats() {
     const t = String(r.Fecha || r.timestamp || '');
     return t.startsWith(todayHN);
   }).length;
-  const ok     = _adminRows.filter(r => (r.Status || r.status) === 'ok').length;
+  const ok      = _adminRows.filter(r => (r.Status || r.status) === 'ok').length;
+  const failed  = _adminRows.filter(r => (r.Status || r.status) === 'failed').length;
+  const partial = _adminRows.filter(r => (r.Status || r.status) === 'partial').length;
   document.getElementById('admin-stats').innerHTML = `
     <div class="admin-stat"><div class="l">Total consultas</div><div class="v">${total}</div></div>
     <div class="admin-stat"><div class="l">Hoy</div><div class="v">${today}</div></div>
     <div class="admin-stat"><div class="l">Marcas distintas</div><div class="v">${brands}</div></div>
-    <div class="admin-stat"><div class="l">Resultados OK</div><div class="v">${ok}</div></div>
+    <div class="admin-stat"><div class="l" style="color:#1d8a3a;">Exitosas</div><div class="v" style="color:#1d8a3a;">${ok}</div></div>
+    <div class="admin-stat"><div class="l" style="color:#b8810a;">Parciales</div><div class="v" style="color:#b8810a;">${partial}</div></div>
+    <div class="admin-stat"><div class="l" style="color:#a32d2d;">Fallidas</div><div class="v" style="color:#a32d2d;">${failed}</div></div>
   `;
 }
 function getFilteredRows() {
@@ -2535,15 +2557,42 @@ function renderAdminTable() {
     return s.slice(0, 16);
   };
 
+  // Convierte mes (número 1-12) o vacío a nombre corto
+  const fmtMes = (m) => {
+    if (!m) return '';
+    const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const n = parseInt(m, 10);
+    if (isNaN(n) || n < 1 || n > 12) return '';
+    return meses[n - 1];
+  };
+  // Limpia el valor de Tons: si viene un Date raro, devuelve vacío; si es número, devuelve con 1 decimal
+  const fmtTons = (v) => {
+    if (v === null || v === undefined || v === '') return '';
+    const s = String(v);
+    // Si parece fecha (Tue May 05 2026..., 2026-05-05T..., etc), descartar
+    if (/^[A-Z][a-z]{2}\s/.test(s)) return '';
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return '';
+    if (s.includes('GMT')) return '';
+    const n = parseFloat(s);
+    if (!isNaN(n)) return n.toFixed(1);
+    return s;
+  };
+
   tb.innerHTML = rows.slice().reverse().slice(0, 500).map(r => {
     const fecha  = fmtFecha(pick(r, 'Fecha', 'timestamp'));
     const marca  = pick(r, 'Marca', 'brand');
     const modelo = pick(r, 'Modelo', 'model');
     const serial = pick(r, 'Serial', 'serial');
-    const tons   = noDate(pick(r, 'Tons', 'tons'));
+    const tons   = fmtTons(pick(r, 'Tons', 'tons'));
+    const mes    = fmtMes(pick(r, 'Mes', 'month'));
     const anio   = noDate(pick(r, 'Año', 'year'));
     const status = pick(r, 'Status', 'status');
     const pais   = pick(r, 'País/TZ', 'country');
+    // Pintar status con color
+    const statusHTML = status === 'ok'      ? `<span style="color:#1d8a3a;font-weight:600;">${status}</span>`
+                     : status === 'partial' ? `<span style="color:#b8810a;font-weight:600;">${status}</span>`
+                     : status === 'failed'  ? `<span style="color:#a32d2d;font-weight:600;">${status}</span>`
+                     : status;
     return `
     <tr>
       <td>${fecha}</td>
@@ -2551,8 +2600,9 @@ function renderAdminTable() {
       <td>${modelo}</td>
       <td>${serial}</td>
       <td>${tons}</td>
+      <td>${mes}</td>
       <td>${anio}</td>
-      <td>${status}</td>
+      <td>${statusHTML}</td>
       <td>${pais}</td>
     </tr>`;
   }).join('');
