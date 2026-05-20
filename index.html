@@ -2472,16 +2472,19 @@ function reloadAdminData() {
 }
 function buildBrandFilter() {
   const sel = document.getElementById('admin-filter-brand');
-  const brands = [...new Set(_adminRows.map(r => r.brand).filter(Boolean))].sort();
+  const brands = [...new Set(_adminRows.map(r => r.Marca || r.brand).filter(Boolean))].sort();
   sel.innerHTML = '<option value="">Todas las marcas</option>' +
     brands.map(b => `<option value="${b}">${b}</option>`).join('');
 }
 function renderStats() {
   const total  = _adminRows.length;
-  const brands = new Set(_adminRows.map(r => r.brand).filter(Boolean)).size;
-  const todayHN = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' }); // yyyy-mm-dd
-  const today  = _adminRows.filter(r => (r.timestamp||'').toString().startsWith(todayHN)).length;
-  const ok     = _adminRows.filter(r => r.status === 'ok').length;
+  const brands = new Set(_adminRows.map(r => r.Marca || r.brand).filter(Boolean)).size;
+  const todayHN = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' });
+  const today  = _adminRows.filter(r => {
+    const t = String(r.Fecha || r.timestamp || '');
+    return t.startsWith(todayHN);
+  }).length;
+  const ok     = _adminRows.filter(r => (r.Status || r.status) === 'ok').length;
   document.getElementById('admin-stats').innerHTML = `
     <div class="admin-stat"><div class="l">Total consultas</div><div class="v">${total}</div></div>
     <div class="admin-stat"><div class="l">Hoy</div><div class="v">${today}</div></div>
@@ -2493,9 +2496,10 @@ function getFilteredRows() {
   const q = document.getElementById('admin-filter-text').value.toLowerCase().trim();
   const b = document.getElementById('admin-filter-brand').value;
   return _adminRows.filter(r => {
-    if (b && r.brand !== b) return false;
+    const rBrand = r.Marca || r.brand || '';
+    if (b && rBrand !== b) return false;
     if (q) {
-      const hay = ((r.brand||'')+' '+(r.model||'')+' '+(r.serial||'')+' '+(r.country||'')).toLowerCase();
+      const hay = (rBrand + ' ' + (r.Modelo||r.model||'') + ' ' + (r.Serial||r.serial||'') + ' ' + (r['País/TZ']||r.country||'')).toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
@@ -2504,26 +2508,54 @@ function getFilteredRows() {
 function renderAdminTable() {
   const rows = getFilteredRows();
   const tb = document.getElementById('admin-table-body');
-  // Helper: si el valor parece una fecha ISO o un Date, devolver vacío
-  const cleanCell = (v) => {
+
+  // Helper robusto: extrae un campo intentando MÚLTIPLES nombres de columna
+  // y devuelve vacío si parece una fecha en una celda donde no corresponde.
+  const pick = (r, ...keys) => {
+    for (const k of keys) {
+      if (r[k] !== undefined && r[k] !== null && r[k] !== '') return r[k];
+    }
+    return '';
+  };
+  // Filtra valores que aparenten ser fechas (cuando se filtraron en columnas equivocadas)
+  const noDate = (v) => {
     if (v === null || v === undefined) return '';
     const s = String(v);
-    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)) return ''; // ISO date
-    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(s) && s.length > 12) return ''; // formato Sheet pero en celda equivocada
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)) return '';
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(s)) return '';
     return s;
   };
-  tb.innerHTML = rows.slice().reverse().slice(0, 500).map(r => `
+  // Formatea timestamp como "DD/MM/YYYY HH:MM"
+  const fmtFecha = (s) => {
+    if (!s) return '';
+    s = String(s);
+    // "2026-05-19 21:02:16"  o  "2026-05-19T21:02:16"
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+    if (m) return `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}`;
+    return s.slice(0, 16);
+  };
+
+  tb.innerHTML = rows.slice().reverse().slice(0, 500).map(r => {
+    const fecha  = fmtFecha(pick(r, 'Fecha', 'timestamp'));
+    const marca  = pick(r, 'Marca', 'brand');
+    const modelo = pick(r, 'Modelo', 'model');
+    const serial = pick(r, 'Serial', 'serial');
+    const tons   = noDate(pick(r, 'Tons', 'tons'));
+    const anio   = noDate(pick(r, 'Año', 'year'));
+    const status = pick(r, 'Status', 'status');
+    const pais   = pick(r, 'País/TZ', 'country');
+    return `
     <tr>
-      <td>${(r.timestamp||'').toString().slice(0,16)}</td>
-      <td>${r.brand||''}</td>
-      <td>${r.model||''}</td>
-      <td>${r.serial||''}</td>
-      <td>${cleanCell(r.tons)}</td>
-      <td>${cleanCell(r.year)}</td>
-      <td>${r.status||''}</td>
-      <td>${r.country||''}</td>
-    </tr>
-  `).join('');
+      <td>${fecha}</td>
+      <td>${marca}</td>
+      <td>${modelo}</td>
+      <td>${serial}</td>
+      <td>${tons}</td>
+      <td>${anio}</td>
+      <td>${status}</td>
+      <td>${pais}</td>
+    </tr>`;
+  }).join('');
 }
 function downloadCSV() {
   const token = sessionStorage.getItem('hvac_admin_token');
