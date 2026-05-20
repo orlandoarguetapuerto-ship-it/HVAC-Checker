@@ -2240,7 +2240,6 @@ function checkHVAC() {
     btu:    _safe(tonsResult && tonsResult.btu),
     year:   _safe(dateResult && dateResult.year),
     month:  _safe(dateResult && dateResult.month),
-    age:    _safe(dateResult && dateResult.age),
     status: ((tonsResult && tonsResult.tons) || (dateResult && dateResult.year)) ? 'ok'
           : (tonsResult || dateResult) ? 'partial' : 'empty'
   });
@@ -2420,7 +2419,7 @@ document.getElementById('report-modal').addEventListener('click', function(e) {
           <thead>
             <tr>
               <th>Fecha</th><th>Marca</th><th>Modelo</th><th>Serial</th>
-              <th>Tons</th><th>Año</th><th>Edad</th><th>Status</th><th>País/TZ</th>
+              <th>Tons</th><th>Año</th><th>Status</th><th>País/TZ</th>
             </tr>
           </thead>
           <tbody id="admin-table-body"></tbody>
@@ -2505,15 +2504,22 @@ function getFilteredRows() {
 function renderAdminTable() {
   const rows = getFilteredRows();
   const tb = document.getElementById('admin-table-body');
+  // Helper: si el valor parece una fecha ISO o un Date, devolver vacío
+  const cleanCell = (v) => {
+    if (v === null || v === undefined) return '';
+    const s = String(v);
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)) return ''; // ISO date
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(s) && s.length > 12) return ''; // formato Sheet pero en celda equivocada
+    return s;
+  };
   tb.innerHTML = rows.slice().reverse().slice(0, 500).map(r => `
     <tr>
       <td>${(r.timestamp||'').toString().slice(0,16)}</td>
       <td>${r.brand||''}</td>
       <td>${r.model||''}</td>
       <td>${r.serial||''}</td>
-      <td>${r.tons||''}</td>
-      <td>${r.year||''}</td>
-      <td>${r.age||''}</td>
+      <td>${cleanCell(r.tons)}</td>
+      <td>${cleanCell(r.year)}</td>
       <td>${r.status||''}</td>
       <td>${r.country||''}</td>
     </tr>
@@ -2525,10 +2531,16 @@ function downloadCSV() {
 }
 function downloadXLSX() {
   const rows = getFilteredRows();
-  const headers = ['timestamp','brand','model','serial','tons','btu','year','month','age','status','country','language','userAgent','referrer','screenSize'];
-  let html = '<table border="1"><tr>' + headers.map(h=>`<th>${h}</th>`).join('') + '</tr>';
+  const headerMap = {
+    'Fecha':'timestamp','Marca':'brand','Modelo':'model','Serial':'serial',
+    'Tons':'tons','BTU':'btu','Año':'year','Mes':'month','Status':'status',
+    'País/TZ':'country','Idioma':'language','Navegador':'userAgent',
+    'Origen':'referrer','Pantalla':'screenSize'
+  };
+  const headerLabels = Object.keys(headerMap);
+  let html = '<table border="1"><tr>' + headerLabels.map(h=>`<th>${h}</th>`).join('') + '</tr>';
   rows.forEach(r => {
-    html += '<tr>' + headers.map(h => `<td>${(r[h]==null?'':String(r[h])).replace(/</g,'&lt;')}</td>`).join('') + '</tr>';
+    html += '<tr>' + headerLabels.map(h => `<td>${(r[headerMap[h]]==null?'':String(r[headerMap[h]])).replace(/</g,'&lt;')}</td>`).join('') + '</tr>';
   });
   html += '</table>';
   const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
