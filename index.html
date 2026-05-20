@@ -2474,7 +2474,8 @@ function buildBrandFilter() {
 function renderStats() {
   const total  = _adminRows.length;
   const brands = new Set(_adminRows.map(r => r.brand).filter(Boolean)).size;
-  const today  = _adminRows.filter(r => (r.timestamp||'').toString().startsWith(new Date().toISOString().slice(0,10))).length;
+  const todayHN = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' }); // yyyy-mm-dd
+  const today  = _adminRows.filter(r => (r.timestamp||'').toString().startsWith(todayHN)).length;
   const ok     = _adminRows.filter(r => r.status === 'ok').length;
   document.getElementById('admin-stats').innerHTML = `
     <div class="admin-stat"><div class="l">Total consultas</div><div class="v">${total}</div></div>
@@ -2500,7 +2501,7 @@ function renderAdminTable() {
   const tb = document.getElementById('admin-table-body');
   tb.innerHTML = rows.slice().reverse().slice(0, 500).map(r => `
     <tr>
-      <td>${(r.timestamp||'').toString().replace('T',' ').slice(0,16)}</td>
+      <td>${(r.timestamp||'').toString().slice(0,16)}</td>
       <td>${r.brand||''}</td>
       <td>${r.model||''}</td>
       <td>${r.serial||''}</td>
