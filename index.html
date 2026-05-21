@@ -1135,14 +1135,14 @@ const CARRIER_SERIES = [
     }
   },
 
-  // ── 38ARZ / 38ARD — Commercial Air-Cooled Condensers ───────────
+  // ── 38AR — Commercial Air-Cooled Condensers ───────────────────
   // Per docx page 9: 3-digit code at positions 6-7-8.
   //   007=5.0T · 008=7.0T · 012=8.7T · 014=10.8T
   //   016=14T · 024=18.1T · 028=24T
   {
-    prefix: /^38AR[ZD]/,
+    prefix: /^38AR/,
     prefixLen: 5,
-    label: '38ARZ/38ARD — Commercial Air-Cooled Condenser',
+    label: '38AR — Commercial Air-Cooled Condenser',
     table: {
       '007': '5.0',  '008': '7.0',  '012': '8.7',  '014': '10.8',
       '016': '14.0', '024': '18.1', '028': '24.0'
