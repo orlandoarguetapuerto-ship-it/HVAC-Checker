@@ -209,31 +209,6 @@
       h1 { font-size: 26px; }
       .metrics-grid { grid-template-columns: 1fr; }
     }
-
-    /* ───── Admin panel ───── */
-    #admin-panel { position: fixed; inset: 0; background: rgba(13,43,94,0.92); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px; }
-    #admin-panel.open { display: flex; }
-    .admin-card { background: #fff; border-radius: 14px; width: min(1100px, 100%); max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,0.4); }
-    .admin-head { background: var(--navy); color: #fff; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
-    .admin-head h2 { font-family: 'DM Serif Display', serif; font-size: 22px; margin: 0; }
-    .admin-head .close { background: transparent; border: 0; color: #fff; font-size: 22px; cursor: pointer; }
-    .admin-body { padding: 20px; overflow: auto; }
-    .admin-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 10px; margin-bottom: 16px; }
-    .admin-stat { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
-    .admin-stat .l { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-    .admin-stat .v { font-size: 22px; font-weight: 700; color: var(--navy); }
-    .admin-toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-    .admin-toolbar input, .admin-toolbar select { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 8px; font: inherit; }
-    .admin-toolbar button { padding: 8px 16px; border: 0; border-radius: 8px; background: var(--blue); color: #fff; font-weight: 600; cursor: pointer; font: inherit; }
-    .admin-toolbar button.ghost { background: #fff; color: var(--blue); border: 1px solid var(--blue); }
-    .admin-table-wrap { border: 1px solid var(--border); border-radius: 10px; overflow: auto; max-height: 50vh; }
-    table.admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    table.admin-table th { position: sticky; top: 0; background: var(--navy); color: #fff; padding: 8px 10px; text-align: left; font-weight: 600; }
-    table.admin-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
-    table.admin-table tr:hover td { background: var(--bg); }
-    .admin-login { padding: 30px; text-align: center; }
-    .admin-login input { width: 100%; max-width: 360px; padding: 10px 14px; border: 1px solid var(--border-strong); border-radius: 8px; font: inherit; margin: 12px 0; }
-    .admin-login button { padding: 10px 22px; border: 0; border-radius: 8px; background: var(--blue); color: #fff; font-weight: 600; cursor: pointer; font: inherit; }
   </style>
 </head>
 <body>
@@ -762,19 +737,19 @@ const CARRIER_SERIES = [
   },
 
   // ── 50TC — WeatherMaker Standard Efficiency Packaged Rooftop ─
-  // Example: 50TC-D08A1A5-0A0G0 → strip dashes → 50TCD08...
-  //          prefix "50TC" (4) + refrig letter "D" = skip 5 → rest "08A..." → code "08" → 7.5 tons
+  // Updated per docx: full denominations 04..14 + missing 16=15T added.
   // Format: 50TC [RefrigOpt] [2-digit tons code] ...
-  // Source: Carrier 50TC Units Model Number Nomenclature
-  // Cooling Tons table:
-  //   07=6T · 08=7.5T · 09=8.5T · 12=10T · 14=12.5T · 16=15T
+  // Cooling Tons table (full):
+  //   04=3T · 05=4T · 06=5T · 07=6T · 08=7.5T · 09=8.5T
+  //   12=10T · 14=12.5T · 16=15T
   {
     prefix: /^50TC/,
     prefixLen: 5,
     digitLen: 2,
     label: '50TC WeatherMaker — Standard Efficiency Packaged Rooftop (Electric Heat)',
     table: {
-      '07': '6.0', '08': '7.5', '09': '8.5',
+      '04': '3.0',  '05': '4.0',  '06': '5.0',  '07': '6.0',
+      '08': '7.5',  '09': '8.5',
       '12': '10.0', '14': '12.5', '16': '15.0'
     }
   },
@@ -854,13 +829,11 @@ const CARRIER_SERIES = [
   },
 
   // ── 48HC series — WeatherMaster High-Efficiency Rooftop ─────
-  // Example: 48HCTD11B2M5A6W2L0 → prefix "48HC" (4) + heat letter + refrig letter = skip 6
-  //          → rest "11B2M5..." → code "11" → 10 tons
-  // Format: 48HC [HeatOpt] [RefrigOpt] [2-digit tons code] ...
-  // Source: Carrier 48HC Model Number Nomenclature (WeatherMaster® HC)
-  // Cooling Tons table (from official nomenclature):
+  // Updated per docx: full unified packaged Carrier tonnage table
   //   04=3T · 05=4T · 06=5T · 07=6T · 08=7.5T · 09=8.5T
-  //   11=10T · 12=10T(11.5EER) · 14=12.5T
+  //   12=10T · 14=12.5T · 16=15T · 17=15T · 20=17.5T
+  //   24=20T · 28=25T · 30=27.5T
+  // NOTE: this same table is shared by many other Carrier packaged series via SHARED_CARRIER_PKG_TABLE below.
   {
     prefix: /^48HC/,
     prefixLen: 6,
@@ -869,7 +842,9 @@ const CARRIER_SERIES = [
     table: {
       '04': '3.0',  '05': '4.0',  '06': '5.0',
       '07': '6.0',  '08': '7.5',  '09': '8.5',
-      '11': '10.0', '12': '10.0', '14': '12.5'
+      '11': '10.0', '12': '10.0', '14': '12.5',
+      '16': '15.0', '17': '15.0', '20': '17.5',
+      '24': '20.0', '28': '25.0', '30': '27.5'
     }
   },
 
@@ -892,7 +867,7 @@ const CARRIER_SERIES = [
 
   // ── 48TC series ──────────────────────────────────────────────
   // Example: 48TCEA04A2M6A0B0C0 → after prefix "48TC", first 2-digit group = "04"
-  // Uses 2-digit capacity codes
+  // Updated per docx: added 16=15T missing denomination
   {
     prefix: /^48TC/,
     prefixLen: 4,
@@ -903,7 +878,7 @@ const CARRIER_SERIES = [
       '07': '6.0', '08': '7.5', '09': '8.5',
       '12': '10.0','14': '12.5','16': '15.0',
       '17': '15.0','20': '17.5','24': '20.0',
-      '28': '26.0','30': '27.5'
+      '28': '25.0','30': '27.5'
     }
   },
 
@@ -923,17 +898,17 @@ const CARRIER_SERIES = [
     }
   },
 
-  // ── 25HCC / 25HCB — heat pump condensers ──
+  // ── 25HCC / 25HCB / 25HCA / 25HC / 25SC — heat pump & AC condensers ──
+  // Per docx update: calculate tons directly from BTU code at positions 7-8 ÷ 12.
+  // Model: 25HC[Variant][SEER digit][BTU 2-digit]... e.g. 25HCB3 30 A003 → "30" → 2.5T
+  // prefixLen=6 skips "25HCB3", first 2-digit group is the BTU code.
   {
-    prefix: /^25H(CC|CB|CA)/,
+    prefix: /^25(H[CABCD]?|SC)/,
     prefixLen: 6,
     digitLen: 2,
-    label: '25HC — Heat Pump Condenser',
-    table: {
-      '18': '1.5', '24': '2.0', '30': '2.5',
-      '36': '3.0', '42': '3.5', '48': '4.0',
-      '60': '5.0'
-    }
+    calcDiv12: true,
+    label: '25HC / 25SC — Residential Condenser (positions 7-8 ÷ 12)',
+    table: null
   },
 
   // ── 38AK / 38AKS — commercial condensing units ──
@@ -951,15 +926,207 @@ const CARRIER_SERIES = [
 
   // ── 40RM — commercial packaged air handlers ──
   // Example: 40RM016 → after prefix "40RM", first 3-digit group = "016"
+  // Updated per docx: proper nominal capacity table
+  //   007=6T · 008=7.5T · 010=8.5T · 012=10T · 014=12.5T
+  //   016=15T · 024=20T · 028=25T · 034=30T
   {
     prefix: /^40RM/,
     prefixLen: 4,
     label: '40RM — Commercial Packaged Air Handler',
     table: {
-      '008': '6.0',  '012': '10.0', '016': '13.3',
-      '020': '16.7', '024': '20.0', '028': '23.3',
-      '030': '25.0'
+      '007': '6.0',  '008': '7.5',  '010': '8.5',
+      '012': '10.0', '014': '12.5', '016': '15.0',
+      '024': '20.0', '028': '25.0', '034': '30.0'
     }
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // NEW CARRIER SERIES (added per docx — Nuevas_implementaciones)
+  // ══════════════════════════════════════════════════════════════
+
+  // ── 58/59 — Gas Furnaces (58M/58S/58T/59M/59S/59T) ─────────────
+  // Per docx page 3: model starts with 58 or 59, third char is M/S/T.
+  // Heating input BTU code is the first 3-digit group ≥ 040 found after
+  // the prefix. Code × 1000 ÷ 12000 = nominal tons.
+  // Examples: 58MCB100... → 100/12 = 8.5T · 59SC5B080... → 080/12 = 6.5T
+  {
+    prefix: /^5[89][MST]/,
+    prefixLen: 3,
+    digitLen: 3,
+    calcDiv12: true,
+    label: '58/59 — Gas Furnace (BTU input ÷ 12)',
+    table: null
+  },
+
+  // ── 48FC / 50FC / 48FE / 50FE — Packaged Rooftops (Eco/Std) ────
+  // Per docx page 4: same unified table used for 48HC.
+  // BTU code at positions 6-7-8 of the model. Code may be 2 or 3 digits
+  // (e.g. 48FCDM08 has just "08"; 48FE004 has "004").
+  // Codes shared:
+  //   004/04=3T · 005/05=4T · 006/06=5T · 007/07=6T · 008/08=7.5T · 009/09=8.5T
+  //   012/12=10T · 014/14=12.5T · 016/16=15T · 020/20=17.5T · 024/24=20T · 028/28=25T · 030/30=27.5T
+  {
+    prefix: /^(48|50)(FC|FE)/,
+    prefixLen: 5,
+    digitLen: 3,            // try 3-digit first; 2-digit codes still match because /\d{2,}/ tolerates
+    label: '48FC/50FC/48FE/50FE — Packaged Rooftop (EcoBlue / Standard Efficiency)',
+    table: {
+      '004': '3.0',  '005': '4.0',  '006': '5.0',  '007': '6.0',
+      '008': '7.5',  '009': '8.5',  '012': '10.0', '014': '12.5',
+      '016': '15.0', '020': '17.5', '024': '20.0', '028': '25.0',
+      '030': '27.5',
+      '04': '3.0',   '05': '4.0',   '06': '5.0',   '07': '6.0',
+      '08': '7.5',   '09': '8.5',   '12': '10.0',  '14': '12.5',
+      '16': '15.0',  '20': '17.5',  '24': '20.0',  '28': '25.0',
+      '30': '27.5'
+    }
+  },
+
+  // ── FX4 — Fan Coils (Multipoise w/ Puron) ──────────────────────
+  // Per docx: code at positions 7-8-9 is the BTU capacity.
+  // 019=18,000 (1.5T) · 025=24,000 (2T) · 031=30,000 (2.5T)
+  // 037=36,000 (3T) · 043=42,000 (3.5T) · 049=48,000 (4T) · 061=60,000 (5T)
+  {
+    prefix: /^FX4/,
+    prefixLen: 6,
+    label: 'FX4 — Fan Coil (Multipoise / Puron)',
+    table: {
+      '019': '1.5', '025': '2.0', '031': '2.5',
+      '037': '3.0', '043': '3.5', '049': '4.0', '061': '5.0'
+    }
+  },
+
+  // ── 24ABB — Residential AC (Comfort Series, Puron) ─────────────
+  // Per docx: tons = (digits 7-8) ÷ 12 directly.
+  // Example: 24ABB3 60 A003 → digits 7-8 = "60" → 60/12 = 5T
+  //          24ABB3 18 A003 → digits 7-8 = "18" → 18/12 = 1.5T
+  // prefixLen=6 skips "24ABB3" (the SEER family digit at pos 6).
+  {
+    prefix: /^24ABB/,
+    prefixLen: 6,
+    digitLen: 2,
+    calcDiv12: true,
+    label: '24ABB — Residential AC (digits 7-8 ÷ 12)',
+    table: null
+  },
+
+  // ── 50HE / 50HJ — Packaged Rooftops (same as 48HC table) ───────
+  // Per docx page 13: uses same shared packaged table as 48HC.
+  // Accepts both 2-digit (08) and 3-digit (008) codes.
+  {
+    prefix: /^50(HE|HJ)/,
+    prefixLen: 5,
+    digitLen: 3,
+    label: '50HE/50HJ — Packaged Rooftop (shared table)',
+    table: {
+      '04': '3.0',  '05': '4.0',  '06': '5.0',  '07': '6.0',
+      '08': '7.5',  '09': '8.5',  '12': '10.0', '14': '12.5',
+      '16': '15.0', '17': '15.0', '20': '17.5', '24': '20.0',
+      '28': '25.0', '30': '27.5',
+      '004': '3.0',  '005': '4.0',  '006': '5.0',  '007': '6.0',
+      '008': '7.5',  '009': '8.5',  '012': '10.0', '014': '12.5',
+      '016': '15.0', '020': '17.5', '024': '20.0', '028': '25.0',
+      '030': '27.5'
+    }
+  },
+
+  // ── 48FF / 50FF / 50TF — Packaged Rooftops (same shared table) ─
+  {
+    prefix: /^(48FF|50FF|50TF)/,
+    prefixLen: 5,
+    digitLen: 3,
+    label: '48FF/50FF/50TF — Packaged Rooftop (shared table)',
+    table: {
+      '04': '3.0',  '05': '4.0',  '06': '5.0',  '07': '6.0',
+      '08': '7.5',  '09': '8.5',  '12': '10.0', '14': '12.5',
+      '16': '15.0', '17': '15.0', '20': '17.5', '24': '20.0',
+      '28': '25.0', '30': '27.5',
+      '004': '3.0',  '005': '4.0',  '006': '5.0',  '007': '6.0',
+      '008': '7.5',  '009': '8.5',  '012': '10.0', '014': '12.5',
+      '016': '15.0', '020': '17.5', '024': '20.0', '028': '25.0',
+      '030': '27.5'
+    }
+  },
+
+  // ── 38AUD / 38AUZ — Commercial Condensing Units (shared table) ─
+  {
+    prefix: /^38AU[DZ]/,
+    prefixLen: 5,
+    digitLen: 3,
+    label: '38AUD/38AUZ — Commercial Condensing Unit (shared table)',
+    table: {
+      '04': '3.0',  '05': '4.0',  '06': '5.0',  '07': '6.0',
+      '08': '7.5',  '09': '8.5',  '12': '10.0', '14': '12.5',
+      '16': '15.0', '17': '15.0', '20': '17.5', '24': '20.0',
+      '28': '25.0', '30': '27.5',
+      '004': '3.0',  '005': '4.0',  '006': '5.0',  '007': '6.0',
+      '008': '7.5',  '009': '8.5',  '012': '10.0', '014': '12.5',
+      '016': '15.0', '020': '17.5', '024': '20.0', '028': '25.0',
+      '030': '27.5'
+    }
+  },
+
+  // ── 38ARZ / 38ARD — Commercial Air-Cooled Condensers ───────────
+  // Per docx page 9: 3-digit code at positions 6-7-8.
+  //   007=5.0T · 008=7.0T · 012=8.7T · 014=10.8T
+  //   016=14T · 024=18.1T · 028=24T
+  {
+    prefix: /^38AR[ZD]/,
+    prefixLen: 5,
+    label: '38ARZ/38ARD — Commercial Air-Cooled Condenser',
+    table: {
+      '007': '5.0',  '008': '7.0',  '012': '8.7',  '014': '10.8',
+      '016': '14.0', '024': '18.1', '028': '24.0'
+    }
+  },
+
+  // ── 48VL — Single Packaged AC & Gas Furnace ────────────────────
+  // Per docx: digits 7-8 ÷ 12 = tons.
+  // Example: 48VL-K24040... → stripped 48VLK24040 → after prefix "48VLK" (5)
+  // → rest "24040" → first 2-digit = "24" → 24/12 = 2T.
+  {
+    prefix: /^48VL/,
+    prefixLen: 5,
+    digitLen: 2,
+    calcDiv12: true,
+    label: '48VL — Single Packaged AC/Furnace (digits 7-8 ÷ 12)',
+    table: null
+  },
+
+  // ── 48GX / 48GS — Single Packaged Gas Heat / Electric Cooling ──
+  // Per docx page 16: 3-digit BTU code at positions 6-7-8.
+  //   018=1.5T · 024=2T · 030=2.5T · 036=3T · 042=3.5T · 048=4T · 060=5T
+  {
+    prefix: /^48G[XS]/,
+    prefixLen: 4,
+    label: '48GX/48GS — Single Packaged Gas Heat / Electric Cooling',
+    table: {
+      '018': '1.5', '024': '2.0', '030': '2.5',
+      '036': '3.0', '042': '3.5', '048': '4.0', '060': '5.0'
+    }
+  },
+
+  // ── 48NG / 48NL / 48NH — Packaged Gas/Electric (digits 7-8 ÷ 12)
+  // Example: 48NG-B24040 → stripped 48NGB24040 → prefix len 5 → rest "24040"
+  //          → first 2-digit "24" → 24/12 = 2T
+  {
+    prefix: /^48N[GLH]/,
+    prefixLen: 5,
+    digitLen: 2,
+    calcDiv12: true,
+    label: '48NG/48NL/48NH — Packaged Gas/Electric (digits 7-8 ÷ 12)',
+    table: null
+  },
+
+  // ── 37MG / 37MH — Outdoor Unit (digits 8-9 ÷ 12) ───────────────
+  // Per docx: 37MGHAQ55FA3 → digits 8-9 = "55" → 55/12 ≈ 4.58 tons
+  {
+    prefix: /^37M[GH]/,
+    prefixLen: 7,
+    digitLen: 2,
+    calcDiv12: true,
+    label: '37MG/37MH — Outdoor Unit R454B (digits 8-9 ÷ 12)',
+    table: null
   },
 ];
 
@@ -983,7 +1150,7 @@ function extractTonsCarrier(model) {
 
     let code;
     if (series.digitLen) {
-      // Series that use a 2-digit code (48TC, 24ACC, 25HC) — find first 2+ digit group
+      // Series that use a 2-digit code — find first 2+ digit group
       const rest = m.substring(series.prefixLen || 4);
       const match = rest.match(/\d{2,}/);
       if (!match) continue;
@@ -996,6 +1163,22 @@ function extractTonsCarrier(model) {
       code = match[0];
     }
 
+    // ── New: calcDiv12 mode — divide BTU code by 12 (no table needed) ──
+    if (series.calcDiv12) {
+      const btuCode = parseInt(code, 10);
+      if (!isNaN(btuCode) && btuCode > 0) {
+        const tonsRaw = btuCode / 12;
+        const tonsRounded = Math.round(tonsRaw * 2) / 2;  // nearest 0.5
+        return {
+          tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
+          series: series.label,
+          codeUsed: code,
+          posUsed: null
+        };
+      }
+      continue;
+    }
+
     const tons = series.table[code];
 
     if (tons) {
@@ -1003,7 +1186,7 @@ function extractTonsCarrier(model) {
         tons,
         series: series.label,
         codeUsed: code,
-        posUsed: null   // no longer positional — highlight not needed
+        posUsed: null
       };
     } else {
       return {
@@ -1096,6 +1279,32 @@ function parseCarrierSerial(raw) {
 function extractTonsTrane(model) {
   if (!model) return null;
   const m = model.trim().toUpperCase().replace(/[\s\-]/g, '');
+
+  // ── HDWA — Agility Centrifugal Water-cooled Chiller ───────────
+  // Per docx: tonnage is read DIRECTLY from positions 5-7 of the model
+  // (no ÷12 conversion). Range 175-500 tons (or "SSS" = Special).
+  // Example: HDWA200... → 200 tons (or HDWA300, HDWA400, HDWA500)
+  if (/^HDWA/.test(m) && m.length >= 7) {
+    const tonsBlock = m.substring(4, 7);
+    if (tonsBlock === 'SSS') {
+      return {
+        tons: 'Special',
+        codeUsed: 'SSS',
+        series: 'Trane HDWA — Agility Centrifugal Chiller (Special)',
+        posUsed: 'positions 5-7'
+      };
+    }
+    const tonsNum = parseInt(tonsBlock, 10);
+    if (!isNaN(tonsNum) && tonsNum >= 175 && tonsNum <= 500) {
+      return {
+        tons: String(tonsNum),
+        btu: tonsNum * 12000,
+        codeUsed: tonsBlock,
+        series: 'Trane HDWA — Agility Centrifugal Chiller (tons read directly)',
+        posUsed: 'positions 5-7'
+      };
+    }
+  }
 
   // Primary: standard Trane/AS residential format
   // Pos 0-2: alphanumeric prefix, pos 3: letter, pos 4-7: 4-digit block
@@ -1220,17 +1429,44 @@ function parseTraneSerial(raw) {
     }
   }
 
+  // ── Style 3 (pre-2002 alt): 9-character serial starting with a letter from
+  // the year-letter table (W-Z 1983-1985, S 1986, B-F 1987-1991, G 1992,
+  // H-N 1993-1998, P 1999, R 2000, Z 2001). Followed by 1-2 digits = week.
+  // Example: K06xxxxxx → K=1995, week 06 → Feb 1995
+  const TRANE_YEAR_LETTERS = {
+    W:1983, X:1984, Y:1985, S:1986, B:1987, C:1988, D:1989, E:1990, F:1991,
+    G:1992, H:1993, J:1994, K:1995, L:1996, M:1997, N:1998, P:1999, R:2000, Z:2001
+  };
+  if (s.length === 9 && TRANE_YEAR_LETTERS[s[0]] !== undefined && /^\d{1,2}/.test(s.substring(1))) {
+    const year   = TRANE_YEAR_LETTERS[s[0]];
+    // Take 2 digits if both are digits, otherwise just 1
+    const weekStr = /^\d{2}/.test(s.substring(1, 3)) ? s.substring(1, 3) : s.substring(1, 2);
+    const week    = parseInt(weekStr, 10);
+    if (week >= 1 && week <= 53) {
+      return {
+        year, week,
+        month: weekToMonth(week),
+        style: 'Style 3 (pre-2002) — Year-letter · Week',
+        ambiguous: false
+      };
+    }
+  }
+
   // ── Style 1 (2002+): starts with digits ──
   // Must start with at least 4 digits
   if (!/^\d{4}/.test(s)) return null;
 
   const firstTwo = parseInt(s.substring(0, 2), 10);
   const firstOne = parseInt(s.substring(0, 1), 10);
+  const NOW_YR2  = new Date().getFullYear() - 2000;  // e.g. 26 in 2026
 
   let year, week, style;
 
-  // 2010+ format: first 2 digits = year (10–40 range)
-  if (firstTwo >= 10 && firstTwo <= 40) {
+  // 2010+ format: first 2 digits = year, but cannot exceed current year.
+  // If the candidate year would be in the future, fall through to the
+  // 1-digit-year (2002–2009) branch — this rescues serials like 406100086L
+  // (40 → would be 2040, so reinterpret as 4 → 2004 with week 06).
+  if (firstTwo >= 10 && firstTwo <= NOW_YR2) {
     year  = 2000 + firstTwo;
     week  = parseInt(s.substring(2, 4), 10);
     style = 'Style 1 (2010+) — 2-digit year · 2-digit fiscal week';
@@ -1278,14 +1514,97 @@ function extractTonsRheem(model) {
   if (!model) return null;
   const m = model.trim().toUpperCase().replace(/[\s\-]/g, '');
 
-  // Find all occurrences where a letter is directly followed by 2+ digits
-  const matches = [...m.matchAll(/[A-Z](\d{2,3})/g)];
+  // Helper: build a result given a code string
+  const buildResult = (codeStr, seriesLabel, posLabel) => {
+    const btuCode = parseInt(codeStr, 10);
+    if (isNaN(btuCode) || btuCode <= 0) return null;
+    const btu = btuCode * 1000;
+    const tons = btu / 12000;
+    const tonsRounded = Math.round(tons * 2) / 2;
+    if (tonsRounded < 0.5 || tonsRounded > 50) return null;
+    return {
+      tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
+      btu,
+      codeUsed: codeStr,
+      series: seriesLabel,
+      posUsed: posLabel
+    };
+  };
 
+  // ── RAC — Residential Air Conditioner ───────────────────────────
+  // Per docx: 2-3 digit BTU code at positions 7-8-9 (index 6-7-8).
+  // Example: RACA14048BCT000AA → "048" → 4 tons
+  // Pos 7 may be 0 or any digit.
+  if (/^RAC/.test(m) && m.length >= 9) {
+    const code = m.substring(6, 9);
+    if (/^\d{2,3}$/.test(code)) {
+      const r = buildResult(code, 'Rheem RAC — Residential AC (positions 7-9 ÷ 12)', 'positions 7-9');
+      if (r) return r;
+    }
+  }
+
+  // ── RA / RP (NOT RAC) — Residential AC / Heat Pump ─────────────
+  // Per docx: BTU code at positions 5-6 (index 4-5).
+  // Example: RA1424... → "24" → 2 tons; RP1448... → "48" → 4 tons
+  if (/^R[AP]\d/.test(m) && !/^RAC/.test(m) && m.length >= 6) {
+    const code = m.substring(4, 6);
+    if (/^\d{2}$/.test(code)) {
+      const r = buildResult(code, 'Rheem RA/RP — Residential AC/HP (positions 5-6 ÷ 12)', 'positions 5-6');
+      if (r) return r;
+    }
+  }
+
+  // ── RCF / RCH — Furnace Coils / Air Handler Coils ──────────────
+  // Per docx page 12: BTU code at positions 4-5 (index 3-4).
+  // Example: RCF24... → "24" → 2 tons; RCH48... → "48" → 4 tons
+  if (/^RC[FH]/.test(m) && m.length >= 5) {
+    const code = m.substring(3, 5);
+    if (/^\d{2}$/.test(code)) {
+      const r = buildResult(code, 'Rheem RCF/RCH — Coils (positions 4-5 ÷ 12)', 'positions 4-5');
+      if (r) return r;
+    }
+  }
+
+  // ── R90 / R92 / R95 / R96 / R97 — 90%+ AFUE Gas Furnaces ───────
+  // Per docx page 12: 3-digit BTU input code at positions 6-7-8 (index 5-7).
+  // Range: 040 to 115. Example: R96VA0701... → "070" → 5.8 tons (heating BTU)
+  if (/^R9[02567]/.test(m) && m.length >= 8) {
+    const code = m.substring(5, 8);
+    if (/^\d{3}$/.test(code)) {
+      const r = buildResult(code, 'Rheem R90/92/95/96/97 — Gas Furnace (positions 6-8 ÷ 12)', 'positions 6-8');
+      if (r) return r;
+    }
+  }
+
+  // ── R80 — 80% AFUE Gas Furnace ─────────────────────────────────
+  // Per docx page 12: 3-digit BTU input code at positions 7-8-9 (index 6-8).
+  // Range: 050 to 150. Example: R80A2V075... → "075" → 6.2 tons
+  if (/^R80/.test(m) && m.length >= 9) {
+    const code = m.substring(6, 9);
+    if (/^\d{3}$/.test(code)) {
+      const r = buildResult(code, 'Rheem R80 — 80% AFUE Furnace (positions 7-9 ÷ 12)', 'positions 7-9');
+      if (r) return r;
+    }
+  }
+
+  // ── RH1 / RH2 / RHM — Air Handlers ─────────────────────────────
+  // Per docx page 13: 2-digit code at positions 5-6 (index 4-5).
+  // Range: 24-60. Example: RH1T36... → "36" → 3 tons
+  if (/^RH[12M]/.test(m) && m.length >= 6) {
+    const code = m.substring(4, 6);
+    if (/^\d{2}$/.test(code)) {
+      const r = buildResult(code, 'Rheem RH1/RH2/RHM — Air Handler (positions 5-6 ÷ 12)', 'positions 5-6');
+      if (r) return r;
+    }
+  }
+
+  // ── Fallback (legacy general logic): first letter+digits ───────
+  const matches = [...m.matchAll(/[A-Z](\d{2,3})/g)];
   for (const match of matches) {
-    const raw    = match[1];                      // e.g. "120", "090", "24"
+    const raw    = match[1];
     const raw3   = raw.substring(0, 3);
     const btuCode = parseInt(raw3, 10);
-    if (btuCode < 18) continue;                    // min 1.5 tons = 18,000 BTU
+    if (btuCode < 18) continue;
 
     const btu  = btuCode * 1000;
     const tons = btu / 12000;
@@ -1296,7 +1615,7 @@ function extractTonsRheem(model) {
       tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
       btu,
       codeUsed: raw3,
-      series: 'Rheem/Ruud — BTU code after letter in model',
+      series: 'Rheem/Ruud — BTU code after letter in model (generic fallback)',
       posUsed: null
     };
   }
@@ -1333,22 +1652,26 @@ function parseRheemSerial(raw) {
   const s = raw.trim().toUpperCase().replace(/\s+/g, '');
   if (s.length < 6) return null;
 
-  const PLANT_LETTERS = /^[FMGWN]$/;
-
-  // ── Styles 2/3/4: find a plant letter surrounded by digits ──
-  // Search for a factory letter that has digits on both sides
-  // (handles CB5D302F099903346, 7351M280616735, OR177M280700097)
-  const middleLetterMatch = s.match(/\d([FMGWN])(\d{4})/);
-  if (middleLetterMatch) {
-    const afterLetter = middleLetterMatch[2];  // 4 digits after plant letter
-    const week = parseInt(afterLetter.substring(0, 2), 10);
-    const yr2  = parseInt(afterLetter.substring(2, 4), 10);
-    if (week >= 1 && week <= 53) {
+  // ── Styles 2/3/4 (REWRITTEN): scan the WHOLE serial for the first F/M/G/N
+  // followed by [WW][YY] where week 1–53 and year is plausible.
+  // This lets us correctly decode serials with junk before the plant letter,
+  // e.g. 2N7943ADAAF051202602 → finds F → week 05 / year 12 → Feb 2012.
+  // The W plant code is NOT considered here; it belongs to Style 1 below.
+  {
+    const re = /([FMGN])(\d{2})(\d{2})/g;
+    let m;
+    while ((m = re.exec(s)) !== null) {
+      const week = parseInt(m[2], 10);
+      const yr2  = parseInt(m[3], 10);
+      if (week < 1 || week > 53) continue;
       const year = yr2 <= 30 ? 2000 + yr2 : 1900 + yr2;
-      if (year >= 1950 && year <= 2040) {
-        const month = weekToMonth(week);
-        return { year, week, month, style: 'Style 2/3/4 — digits·PlantLetter·Week·Year·seq', ambiguous: false };
-      }
+      if (year < 1970 || year > 2040) continue;
+      const month = weekToMonth(week);
+      return {
+        year, week, month,
+        style: 'Style 2/3/4 — first F/M/G/N + Week + Year (scanned)',
+        ambiguous: false
+      };
     }
   }
 
@@ -1365,7 +1688,7 @@ function parseRheemSerial(raw) {
   }
 
   // ── Style 1: starts with a plant letter then 4+ digits, no middle letter ──
-  // [PlantLetter][WW][YY][seq]
+  // [PlantLetter][WW][YY][seq]  (W lives here)
   if (/^[A-Z]\d{4,}$/.test(s)) {
     const week = parseInt(s.substring(1, 3), 10);
     const yr2  = parseInt(s.substring(3, 5), 10);
@@ -1379,13 +1702,11 @@ function parseRheemSerial(raw) {
   }
 
   // ── Style 6: all digits, date at the END — [seq][WW][YY] ──
-  // Last 4 digits: 3rd&4th from end = week, last 2 = year
   if (/^\d{6,}$/.test(s)) {
     const n    = s.length;
     const week = parseInt(s.substring(n - 4, n - 2), 10);
     const yr2  = parseInt(s.substring(n - 2), 10);
     if (week >= 1 && week <= 53) {
-      // Style 6 is mid-1970s and prior — year must be < 76
       const year = yr2 <= 76 ? 1900 + yr2 : null;
       if (year) {
         const month = weekToMonth(week);
@@ -1904,27 +2225,53 @@ function extractTonsYork(model) {
   if (!model) return null;
   const m = model.trim().toUpperCase().replace(/[\s\-]/g, '');
 
-  // ── Special case: York Packaged AC (ZQ, ZX, ZY, ZL prefix) ──
-  // These models use a nominal capacity CODE, NOT a BTU code.
-  // The 2-digit code at positions 3–4 maps to tonnage via a lookup table.
+  // ── Special case: York Packaged AC (ZQ, ZX, ZY, ZL) AND
+  //    York Packaged Heat Pump (XY, XX, XQ) — same lookup table ──
+  // Per docx: XY/XX/XQ are calculated the same way as ZX.
   // From York 3-12.5 Ton Nomenclature:
   //   04=3T · 05=4T · 06=5T · 07=6T · A7=6T · 08=7.5T · 09=8.5T · 12=10T · 14=12.5T
   const YORK_PKG_TONS = {
     '04': 3.0, '05': 4.0, '06': 5.0, '07': 6.0,
     'A7': 6.0, '08': 7.5, '09': 8.5, '12': 10.0, '14': 12.5
   };
-  if (/^(ZQ|ZX|ZY|ZL)/.test(m) && m.length >= 5) {
+  if (/^(ZQ|ZX|ZY|ZL|XY|XX|XQ)/.test(m) && m.length >= 5) {
     // Format: ZX G 04 D 2 A ...  → pos[2..3] = capacity code
     const capCode = m.substring(3, 5); // e.g. "04", "12", "A7"
     const tons = YORK_PKG_TONS[capCode];
     if (tons !== undefined) {
+      const isHP = /^X[YXQ]/.test(m);
       return {
         tons: String(tons % 1 === 0 ? tons.toFixed(1) : tons),
         btu: tons * 12000,
         codeUsed: capCode,
-        series: 'York Packaged AC (ZQ/ZX/ZY/ZL) — capacity code lookup table',
+        series: isHP
+          ? 'York Packaged Heat Pump (XY/XX/XQ) — capacity code lookup'
+          : 'York Packaged AC (ZQ/ZX/ZY/ZL) — capacity code lookup table',
         posUsed: 'positions 4–5'
       };
+    }
+  }
+
+  // ── Special case: York ZJ / ZR / ZF — 15-25 Ton Packaged ───────
+  // Per docx page 7: code at positions 3-4-5 of the model.
+  //   180=15T · 210=17.5T · 240=20T · 300=25T (BTU code ÷ 12)
+  // Must result in 15-25 tons range; outside that range → invalid.
+  // Example: ZF180C00A2A1AAA1A1 → "180" → 15 tons
+  if (/^(ZJ|ZR|ZF)/.test(m) && m.length >= 5) {
+    const capCode = m.substring(2, 5);
+    const btuCode = parseInt(capCode, 10);
+    if (!isNaN(btuCode)) {
+      const tonsRaw = btuCode / 12;
+      const tonsRounded = Math.round(tonsRaw * 2) / 2;
+      if (tonsRounded >= 15 && tonsRounded <= 25) {
+        return {
+          tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
+          btu: btuCode * 1000,
+          codeUsed: capCode,
+          series: 'York ZJ/ZR/ZF — 15-25 Ton Packaged (BTU ÷ 12)',
+          posUsed: 'positions 3-5'
+        };
+      }
     }
   }
 
@@ -2049,30 +2396,6 @@ function parseYorkSerial(raw) {
 // ═══════════════════════════════════════════════════════════════
 // UI
 // ═══════════════════════════════════════════════════════════════
-
-// ───── HVAC Logger config ─────
-const HVAC_LOGGER_URL  = 'https://script.google.com/macros/s/AKfycbxM3xPVPME1_0s0TSYEPRn4gYHO704vDwZd2FptAw8zKqghOz50ezoW7_clX9myEtVH5g/exec';
-// ──────────────────────────────
-
-function logConsulta(payload) {
-  if (!HVAC_LOGGER_URL) return;
-  try {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-    const body = Object.assign({
-      country:    tz,
-      language:   navigator.language || '',
-      userAgent:  navigator.userAgent || '',
-      referrer:   document.referrer || 'direct',
-      screenSize: window.screen.width + 'x' + window.screen.height
-    }, payload);
-    fetch(HVAC_LOGGER_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(body)
-    }).catch(() => {});
-  } catch (e) {}
-}
 
 let lastBrand = '';
 
@@ -2225,43 +2548,6 @@ function checkHVAC() {
   document.getElementById('res-brand').textContent   = brand;
   document.getElementById('info-table').innerHTML    = infoHTML;
 
-  // ── Log silencioso a Google Sheets ──
-  const _safe = (v) => {
-    if (v === null || v === undefined || v === '') return '';
-    if (v instanceof Date) return '';
-    if (typeof v === 'object') return '';
-    return String(v);
-  };
-  // ── Lógica de status ──
-  // ok      = se obtuvo lo que se pidió
-  // partial = ingresó model + serial pero solo uno funcionó
-  // failed  = no se pudo dar ningún resultado útil
-  const gotTons = !!(tonsResult && tonsResult.tons);
-  const gotDate = !!(dateResult && dateResult.year);
-  let _status;
-  if (model && serial) {
-    if (gotTons && gotDate)        _status = 'ok';
-    else if (gotTons || gotDate)   _status = 'partial';
-    else                           _status = 'failed';
-  } else if (model && !serial) {
-    _status = gotTons ? 'ok' : 'failed';
-  } else if (!model && serial) {
-    _status = gotDate ? 'ok' : 'failed';
-  } else {
-    _status = 'failed';
-  }
-
-  logConsulta({
-    brand:  _safe(brand),
-    model:  _safe(model),
-    serial: _safe(serial),
-    tons:   _safe(tonsResult && tonsResult.tons),
-    btu:    _safe(tonsResult && tonsResult.btu),
-    year:   _safe(dateResult && dateResult.year),
-    month:  _safe(dateResult && dateResult.month),
-    status: _status
-  });
-
   document.getElementById('form-section').style.display   = 'none';
   document.getElementById('result-section').style.display = 'block';
 
@@ -2401,255 +2687,6 @@ updateBrandHints();
 document.getElementById('report-modal').addEventListener('click', function(e) {
   if (e.target === this) closeReportModal();
 });
-</script>
-
-<!-- ═══════════════════════════════════════════════════════════════
-     ADMIN PANEL — abrir con Ctrl+Shift+A o ?admin=1 en la URL
-     ═══════════════════════════════════════════════════════════════ -->
-<div id="admin-panel" aria-hidden="true">
-  <div class="admin-card">
-    <div class="admin-head">
-      <h2>📊 Admin Dashboard — HVAC Checker</h2>
-      <button class="close" onclick="closeAdminPanel()" aria-label="Close">✕</button>
-    </div>
-
-    <div class="admin-body admin-login" id="admin-login-view">
-      <p>Ingresa tu token de administrador:</p>
-      <input type="password" id="admin-token-input" placeholder="Admin token" onkeydown="if(event.key==='Enter') adminLogin()" />
-      <br/>
-      <button onclick="adminLogin()">Entrar</button>
-      <p id="admin-login-error" style="color:var(--red);margin-top:10px;display:none;">Token incorrecto.</p>
-    </div>
-
-    <div class="admin-body" id="admin-dash-view" style="display:none;">
-      <div class="admin-stats" id="admin-stats"></div>
-
-      <div class="admin-toolbar">
-        <input type="text"   id="admin-filter-text"  placeholder="🔍 Buscar (marca, modelo, serial…)" oninput="renderAdminTable()" />
-        <select id="admin-filter-brand" onchange="renderAdminTable()"><option value="">Todas las marcas</option></select>
-        <button onclick="downloadCSV()">⬇ Descargar CSV</button>
-        <button class="ghost" onclick="downloadXLSX()">⬇ Excel (.xls)</button>
-        <button class="ghost" onclick="reloadAdminData()">↻ Recargar</button>
-      </div>
-
-      <div class="admin-table-wrap">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>Fecha</th><th>Marca</th><th>Modelo</th><th>Serial</th>
-              <th>Tons</th><th>Mes</th><th>Año</th><th>Status</th><th>País/TZ</th>
-            </tr>
-          </thead>
-          <tbody id="admin-table-body"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-let _adminRows = [];
-
-function openAdminPanel() {
-  document.getElementById('admin-panel').classList.add('open');
-  const saved = sessionStorage.getItem('hvac_admin_token');
-  if (saved) { document.getElementById('admin-token-input').value = saved; adminLogin(); }
-}
-function closeAdminPanel() {
-  document.getElementById('admin-panel').classList.remove('open');
-}
-function adminLogin() {
-  const token = document.getElementById('admin-token-input').value.trim();
-  if (!token) return;
-  fetch(HVAC_LOGGER_URL + '?token=' + encodeURIComponent(token) + '&action=list')
-    .then(r => r.json())
-    .then(data => {
-      if (!data.success) {
-        document.getElementById('admin-login-error').textContent = 'Token incorrecto.';
-        document.getElementById('admin-login-error').style.display = 'block';
-        return;
-      }
-      sessionStorage.setItem('hvac_admin_token', token);
-      _adminRows = data.rows || [];
-      document.getElementById('admin-login-view').style.display = 'none';
-      document.getElementById('admin-dash-view').style.display  = 'block';
-      buildBrandFilter();
-      renderStats();
-      renderAdminTable();
-    })
-    .catch(() => {
-      document.getElementById('admin-login-error').textContent = 'Error de conexión.';
-      document.getElementById('admin-login-error').style.display = 'block';
-    });
-}
-function reloadAdminData() {
-  const token = sessionStorage.getItem('hvac_admin_token');
-  if (!token) return;
-  document.getElementById('admin-token-input').value = token;
-  adminLogin();
-}
-function buildBrandFilter() {
-  const sel = document.getElementById('admin-filter-brand');
-  const brands = [...new Set(_adminRows.map(r => r.Marca || r.brand).filter(Boolean))].sort();
-  sel.innerHTML = '<option value="">Todas las marcas</option>' +
-    brands.map(b => `<option value="${b}">${b}</option>`).join('');
-}
-function renderStats() {
-  const total  = _adminRows.length;
-  const brands = new Set(_adminRows.map(r => r.Marca || r.brand).filter(Boolean)).size;
-  const todayHN = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' });
-  const today  = _adminRows.filter(r => {
-    const t = String(r.Fecha || r.timestamp || '');
-    return t.startsWith(todayHN);
-  }).length;
-  const ok      = _adminRows.filter(r => (r.Status || r.status) === 'ok').length;
-  const failed  = _adminRows.filter(r => (r.Status || r.status) === 'failed').length;
-  const partial = _adminRows.filter(r => (r.Status || r.status) === 'partial').length;
-  document.getElementById('admin-stats').innerHTML = `
-    <div class="admin-stat"><div class="l">Total queries</div><div class="v">${total}</div></div>
-    <div class="admin-stat"><div class="l">Today</div><div class="v">${today}</div></div>
-    <div class="admin-stat"><div class="l">Brands</div><div class="v">${brands}</div></div>
-    <div class="admin-stat"><div class="l" style="color:#1d8a3a;">Completed</div><div class="v" style="color:#1d8a3a;">${ok}</div></div>
-    <div class="admin-stat"><div class="l" style="color:#b8810a;">Partial</div><div class="v" style="color:#b8810a;">${partial}</div></div>
-    <div class="admin-stat"><div class="l" style="color:#a32d2d;">Failed</div><div class="v" style="color:#a32d2d;">${failed}</div></div>
-  `;
-}
-function getFilteredRows() {
-  const q = document.getElementById('admin-filter-text').value.toLowerCase().trim();
-  const b = document.getElementById('admin-filter-brand').value;
-  return _adminRows.filter(r => {
-    const rBrand = r.Marca || r.brand || '';
-    if (b && rBrand !== b) return false;
-    if (q) {
-      const hay = (rBrand + ' ' + (r.Modelo||r.model||'') + ' ' + (r.Serial||r.serial||'') + ' ' + (r['País/TZ']||r.country||'')).toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
-}
-function renderAdminTable() {
-  const rows = getFilteredRows();
-  const tb = document.getElementById('admin-table-body');
-
-  // Helper robusto: extrae un campo intentando MÚLTIPLES nombres de columna
-  // y devuelve vacío si parece una fecha en una celda donde no corresponde.
-  const pick = (r, ...keys) => {
-    for (const k of keys) {
-      if (r[k] !== undefined && r[k] !== null && r[k] !== '') return r[k];
-    }
-    return '';
-  };
-  // Filtra valores que aparenten ser fechas (cuando se filtraron en columnas equivocadas)
-  const noDate = (v) => {
-    if (v === null || v === undefined) return '';
-    const s = String(v);
-    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)) return '';
-    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(s)) return '';
-    return s;
-  };
-  // Formatea timestamp como "DD/MM/YYYY HH:MM"
-  const fmtFecha = (s) => {
-    if (!s) return '';
-    s = String(s);
-    // "2026-05-19 21:02:16"  o  "2026-05-19T21:02:16"
-    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
-    if (m) return `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}`;
-    return s.slice(0, 16);
-  };
-
-  // Convierte mes (número 1-12) o vacío a nombre corto
-  const fmtMes = (m) => {
-    if (!m) return '';
-    const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    const n = parseInt(m, 10);
-    if (isNaN(n) || n < 1 || n > 12) return '';
-    return meses[n - 1];
-  };
-  // Limpia el valor de Tons: si viene un Date raro, devuelve vacío; si es número, devuelve con 1 decimal
-  const fmtTons = (v) => {
-    if (v === null || v === undefined || v === '') return '';
-    const s = String(v);
-    // Si parece fecha (Tue May 05 2026..., 2026-05-05T..., etc), descartar
-    if (/^[A-Z][a-z]{2}\s/.test(s)) return '';
-    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return '';
-    if (s.includes('GMT')) return '';
-    const n = parseFloat(s);
-    if (!isNaN(n)) return n.toFixed(1);
-    return s;
-  };
-
-  tb.innerHTML = rows.slice().reverse().slice(0, 500).map(r => {
-    const fecha  = fmtFecha(pick(r, 'Fecha', 'timestamp'));
-    const marca  = pick(r, 'Marca', 'brand');
-    const modelo = pick(r, 'Modelo', 'model');
-    const serial = pick(r, 'Serial', 'serial');
-    const tons   = fmtTons(pick(r, 'Tons', 'tons'));
-    const mes    = fmtMes(pick(r, 'Mes', 'month'));
-    const anio   = noDate(pick(r, 'Año', 'year'));
-    const pais   = pick(r, 'País/TZ', 'country');
-    // Normalizar status viejos: empty -> failed
-    let statusFinal = pick(r, 'Status', 'status');
-    if (statusFinal === 'empty') statusFinal = 'failed';
-    // Pintar status con color
-    const statusHTML = statusFinal === 'ok'      ? `<span style="color:#1d8a3a;font-weight:600;">${statusFinal}</span>`
-                     : statusFinal === 'partial' ? `<span style="color:#b8810a;font-weight:600;">${statusFinal}</span>`
-                     : statusFinal === 'failed'  ? `<span style="color:#a32d2d;font-weight:600;">${statusFinal}</span>`
-                     : statusFinal;
-    return `
-    <tr>
-      <td>${fecha}</td>
-      <td>${marca}</td>
-      <td>${modelo}</td>
-      <td>${serial}</td>
-      <td>${tons}</td>
-      <td>${mes}</td>
-      <td>${anio}</td>
-      <td>${statusHTML}</td>
-      <td>${pais}</td>
-    </tr>`;
-  }).join('');
-}
-function downloadCSV() {
-  const token = sessionStorage.getItem('hvac_admin_token');
-  window.open(HVAC_LOGGER_URL + '?token=' + encodeURIComponent(token) + '&action=csv', '_blank');
-}
-function downloadXLSX() {
-  const rows = getFilteredRows();
-  const headerMap = {
-    'Fecha':'timestamp','Marca':'brand','Modelo':'model','Serial':'serial',
-    'Tons':'tons','BTU':'btu','Año':'year','Mes':'month','Status':'status',
-    'País/TZ':'country','Idioma':'language','Navegador':'userAgent',
-    'Origen':'referrer','Pantalla':'screenSize'
-  };
-  const headerLabels = Object.keys(headerMap);
-  let html = '<table border="1"><tr>' + headerLabels.map(h=>`<th>${h}</th>`).join('') + '</tr>';
-  rows.forEach(r => {
-    html += '<tr>' + headerLabels.map(h => `<td>${(r[headerMap[h]]==null?'':String(r[headerMap[h]])).replace(/</g,'&lt;')}</td>`).join('') + '</tr>';
-  });
-  html += '</table>';
-  const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'hvac-consultas-' + new Date().toISOString().slice(0,10) + '.xls';
-  a.click();
-}
-
-// Cerrar al hacer click fuera de la tarjeta
-document.getElementById('admin-panel').addEventListener('click', function(e) {
-  if (e.target === this) closeAdminPanel();
-});
-
-// Atajo Ctrl + Shift + A
-document.addEventListener('keydown', e => {
-  if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
-    e.preventDefault(); openAdminPanel();
-  }
-});
-
-// URL ?admin=1
-if (new URLSearchParams(location.search).get('admin') === '1') {
-  window.addEventListener('load', openAdminPanel);
-}
 </script>
 </body>
 </html>
