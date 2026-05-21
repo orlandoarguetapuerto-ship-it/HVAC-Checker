@@ -134,6 +134,30 @@
     .btn-modal-send:disabled { opacity:.6; cursor:not-allowed; }
     .btn-modal-cancel { background:#f5f5f5; color:#666; border:none; border-radius:10px; padding:11px 18px; font-size:14px; font-weight:600; cursor:pointer; }
     .btn-modal-close { position:absolute; top:14px; right:16px; background:none; border:none; font-size:20px; color:#aaa; cursor:pointer; line-height:1; }
+    /* ───── Admin panel ───── */
+    #admin-panel { position: fixed; inset: 0; background: rgba(13,43,94,0.92); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px; }
+    #admin-panel.open { display: flex; }
+    .admin-card { background: #fff; border-radius: 14px; width: min(1100px, 100%); max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,0.4); }
+    .admin-head { background: var(--navy); color: #fff; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+    .admin-head h2 { font-family: 'DM Serif Display', serif; font-size: 22px; margin: 0; }
+    .admin-head .close { background: transparent; border: 0; color: #fff; font-size: 22px; cursor: pointer; }
+    .admin-body { padding: 20px; overflow: auto; }
+    .admin-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 10px; margin-bottom: 16px; }
+    .admin-stat { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
+    .admin-stat .l { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+    .admin-stat .v { font-size: 22px; font-weight: 700; color: var(--navy); }
+    .admin-toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .admin-toolbar input, .admin-toolbar select { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 8px; font: inherit; }
+    .admin-toolbar button { padding: 8px 16px; border: 0; border-radius: 8px; background: var(--blue); color: #fff; font-weight: 600; cursor: pointer; font: inherit; }
+    .admin-toolbar button.ghost { background: #fff; color: var(--blue); border: 1px solid var(--blue); }
+    .admin-table-wrap { border: 1px solid var(--border); border-radius: 10px; overflow: auto; max-height: 50vh; }
+    table.admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.admin-table th { position: sticky; top: 0; background: var(--navy); color: #fff; padding: 8px 10px; text-align: left; font-weight: 600; }
+    table.admin-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+    table.admin-table tr:hover td { background: var(--bg); }
+    .admin-login { padding: 30px; text-align: center; }
+    .admin-login input { width: 100%; max-width: 360px; padding: 10px 14px; border: 1px solid var(--border-strong); border-radius: 8px; font: inherit; margin: 12px 0; }
+    .admin-login button { padding: 10px 22px; border: 0; border-radius: 8px; background: var(--blue); color: #fff; font-weight: 600; cursor: pointer; font: inherit; }
     /* ── Success overlay (centered, beautiful) ── */
     .success-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:2000; align-items:center; justify-content:center; }
     .success-overlay.show { display:flex; }
@@ -584,6 +608,51 @@
       <h4>Report Sent!</h4>
       <p>Thank you for helping improve the tool.<br>We'll review your submission and update accordingly.</p>
       <button class="btn-success-close" onclick="document.getElementById('success-overlay').classList.remove('show')">Got it</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       ADMIN PANEL
+       Open with Ctrl+Shift+A or ?admin=1
+       ═══════════════════════════════════════════════════════════════ -->
+  <div id="admin-panel" aria-hidden="true">
+    <div class="admin-card">
+      <div class="admin-head">
+        <h2>📊 Admin Dashboard — HVAC Checker</h2>
+        <button class="close" onclick="closeAdminPanel()" aria-label="Close">✕</button>
+      </div>
+
+      <div class="admin-body admin-login" id="admin-login-view">
+        <p>Ingresa tu token de administrador:</p>
+        <input type="password" id="admin-token-input" placeholder="Admin token" onkeydown="if(event.key==='Enter') adminLogin()" />
+        <br/>
+        <button onclick="adminLogin()">Entrar</button>
+        <p id="admin-login-error" style="color:var(--red);margin-top:10px;display:none;">Token incorrecto.</p>
+      </div>
+
+      <div class="admin-body" id="admin-dash-view" style="display:none;">
+        <div class="admin-stats" id="admin-stats"></div>
+
+        <div class="admin-toolbar">
+          <input type="text"   id="admin-filter-text"  placeholder="🔍 Buscar (marca, modelo, serial…)" oninput="renderAdminTable()" />
+          <select id="admin-filter-brand" onchange="renderAdminTable()"><option value="">Todas las marcas</option></select>
+          <button onclick="downloadCSV()">⬇ Descargar CSV</button>
+          <button class="ghost" onclick="downloadXLSX()">⬇ Excel (.xls)</button>
+          <button class="ghost" onclick="reloadAdminData()">↻ Recargar</button>
+        </div>
+
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Fecha</th><th>Marca</th><th>Modelo</th><th>Serial</th>
+                <th>Tons</th><th>Mes</th><th>Año</th><th>Status</th><th>País/TZ</th>
+              </tr>
+            </thead>
+            <tbody id="admin-table-body"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2397,6 +2466,30 @@ function parseYorkSerial(raw) {
 // UI
 // ═══════════════════════════════════════════════════════════════
 
+// ───── HVAC Logger config (Google Sheets via Apps Script) ─────
+const HVAC_LOGGER_URL = 'https://script.google.com/macros/s/AKfycbxM3xPVPME1_0s0TSYEPRn4gYHO704vDwZd2FptAw8zKqghOz50ezoW7_clX9myEtVH5g/exec';
+// ──────────────────────────────────────────────────────────────
+
+function logConsulta(payload) {
+  if (!HVAC_LOGGER_URL) return;
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    const body = Object.assign({
+      country:    tz,
+      language:   navigator.language || '',
+      userAgent:  navigator.userAgent || '',
+      referrer:   document.referrer || 'direct',
+      screenSize: window.screen.width + 'x' + window.screen.height
+    }, payload);
+    fetch(HVAC_LOGGER_URL, {
+      method: 'POST',
+      mode:   'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body:   JSON.stringify(body)
+    }).catch(() => {});
+  } catch (e) {}
+}
+
 let lastBrand = '';
 
 function highlightModel(model, start, end) {
@@ -2548,6 +2641,43 @@ function checkHVAC() {
   document.getElementById('res-brand').textContent   = brand;
   document.getElementById('info-table').innerHTML    = infoHTML;
 
+  // ── Log silencioso a Google Sheets ──
+  const _safe = (v) => {
+    if (v === null || v === undefined || v === '') return '';
+    if (v instanceof Date) return '';
+    if (typeof v === 'object') return '';
+    return String(v);
+  };
+  // ── Lógica de status ──
+  // ok      = se obtuvo lo que se pidió
+  // partial = ingresó model + serial pero solo uno funcionó
+  // failed  = no se pudo dar ningún resultado útil
+  const gotTons = !!(tonsResult && tonsResult.tons);
+  const gotDate = !!(dateResult && dateResult.year);
+  let _status;
+  if (model && serial) {
+    if (gotTons && gotDate)        _status = 'ok';
+    else if (gotTons || gotDate)   _status = 'partial';
+    else                           _status = 'failed';
+  } else if (model && !serial) {
+    _status = gotTons ? 'ok' : 'failed';
+  } else if (!model && serial) {
+    _status = gotDate ? 'ok' : 'failed';
+  } else {
+    _status = 'failed';
+  }
+
+  logConsulta({
+    brand:  _safe(brand),
+    model:  _safe(model),
+    serial: _safe(serial),
+    tons:   _safe(tonsResult && tonsResult.tons),
+    btu:    _safe(tonsResult && tonsResult.btu),
+    year:   _safe(dateResult && dateResult.year),
+    month:  _safe(dateResult && dateResult.month),
+    status: _status
+  });
+
   document.getElementById('form-section').style.display   = 'none';
   document.getElementById('result-section').style.display = 'block';
 
@@ -2687,6 +2817,204 @@ updateBrandHints();
 document.getElementById('report-modal').addEventListener('click', function(e) {
   if (e.target === this) closeReportModal();
 });
+
+// ═══════════════════════════════════════════════════════════════
+// ADMIN DASHBOARD — connected to Google Sheets via Apps Script
+// Open with Ctrl+Shift+A or by visiting URL with ?admin=1
+// ═══════════════════════════════════════════════════════════════
+
+let _adminRows = [];
+
+function openAdminPanel() {
+  document.getElementById('admin-panel').classList.add('open');
+  const saved = sessionStorage.getItem('hvac_admin_token');
+  if (saved) { document.getElementById('admin-token-input').value = saved; adminLogin(); }
+}
+function closeAdminPanel() {
+  document.getElementById('admin-panel').classList.remove('open');
+}
+function adminLogin() {
+  const token = document.getElementById('admin-token-input').value.trim();
+  if (!token) return;
+  fetch(HVAC_LOGGER_URL + '?token=' + encodeURIComponent(token) + '&action=list')
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) {
+        document.getElementById('admin-login-error').textContent = 'Token incorrecto.';
+        document.getElementById('admin-login-error').style.display = 'block';
+        return;
+      }
+      sessionStorage.setItem('hvac_admin_token', token);
+      _adminRows = data.rows || [];
+      document.getElementById('admin-login-view').style.display = 'none';
+      document.getElementById('admin-dash-view').style.display  = 'block';
+      buildBrandFilter();
+      renderStats();
+      renderAdminTable();
+    })
+    .catch(() => {
+      document.getElementById('admin-login-error').textContent = 'Error de conexión.';
+      document.getElementById('admin-login-error').style.display = 'block';
+    });
+}
+function reloadAdminData() {
+  const token = sessionStorage.getItem('hvac_admin_token');
+  if (!token) return;
+  document.getElementById('admin-token-input').value = token;
+  adminLogin();
+}
+function buildBrandFilter() {
+  const sel = document.getElementById('admin-filter-brand');
+  const brands = [...new Set(_adminRows.map(r => r.Marca || r.brand).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">Todas las marcas</option>' +
+    brands.map(b => `<option value="${b}">${b}</option>`).join('');
+}
+function renderStats() {
+  const total  = _adminRows.length;
+  const brands = new Set(_adminRows.map(r => r.Marca || r.brand).filter(Boolean)).size;
+  const todayHN = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Tegucigalpa' });
+  const today  = _adminRows.filter(r => {
+    const t = String(r.Fecha || r.timestamp || '');
+    return t.startsWith(todayHN);
+  }).length;
+  const ok      = _adminRows.filter(r => (r.Status || r.status) === 'ok').length;
+  const failed  = _adminRows.filter(r => (r.Status || r.status) === 'failed').length;
+  const partial = _adminRows.filter(r => (r.Status || r.status) === 'partial').length;
+  document.getElementById('admin-stats').innerHTML = `
+    <div class="admin-stat"><div class="l">Total queries</div><div class="v">${total}</div></div>
+    <div class="admin-stat"><div class="l">Today</div><div class="v">${today}</div></div>
+    <div class="admin-stat"><div class="l">Brands</div><div class="v">${brands}</div></div>
+    <div class="admin-stat"><div class="l" style="color:#1d8a3a;">Completed</div><div class="v" style="color:#1d8a3a;">${ok}</div></div>
+    <div class="admin-stat"><div class="l" style="color:#b8810a;">Partial</div><div class="v" style="color:#b8810a;">${partial}</div></div>
+    <div class="admin-stat"><div class="l" style="color:#a32d2d;">Failed</div><div class="v" style="color:#a32d2d;">${failed}</div></div>
+  `;
+}
+function getFilteredRows() {
+  const q = document.getElementById('admin-filter-text').value.toLowerCase().trim();
+  const b = document.getElementById('admin-filter-brand').value;
+  return _adminRows.filter(r => {
+    const rBrand = r.Marca || r.brand || '';
+    if (b && rBrand !== b) return false;
+    if (q) {
+      const hay = (rBrand + ' ' + (r.Modelo||r.model||'') + ' ' + (r.Serial||r.serial||'') + ' ' + (r['País/TZ']||r.country||'')).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+function renderAdminTable() {
+  const rows = getFilteredRows();
+  const tb = document.getElementById('admin-table-body');
+
+  const pick = (r, ...keys) => {
+    for (const k of keys) {
+      if (r[k] !== undefined && r[k] !== null && r[k] !== '') return r[k];
+    }
+    return '';
+  };
+  const noDate = (v) => {
+    if (v === null || v === undefined) return '';
+    const s = String(v);
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)) return '';
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(s)) return '';
+    return s;
+  };
+  const fmtFecha = (s) => {
+    if (!s) return '';
+    s = String(s);
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+    if (m) return `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}`;
+    return s.slice(0, 16);
+  };
+  const fmtMes = (m) => {
+    if (!m) return '';
+    const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const n = parseInt(m, 10);
+    if (isNaN(n) || n < 1 || n > 12) return '';
+    return meses[n - 1];
+  };
+  const fmtTons = (v) => {
+    if (v === null || v === undefined || v === '') return '';
+    const s = String(v);
+    if (/^[A-Z][a-z]{2}\s/.test(s)) return '';
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return '';
+    if (s.includes('GMT')) return '';
+    const n = parseFloat(s);
+    if (!isNaN(n)) return n.toFixed(1);
+    return s;
+  };
+
+  tb.innerHTML = rows.slice().reverse().slice(0, 500).map(r => {
+    const fecha  = fmtFecha(pick(r, 'Fecha', 'timestamp'));
+    const marca  = pick(r, 'Marca', 'brand');
+    const modelo = pick(r, 'Modelo', 'model');
+    const serial = pick(r, 'Serial', 'serial');
+    const tons   = fmtTons(pick(r, 'Tons', 'tons'));
+    const mes    = fmtMes(pick(r, 'Mes', 'month'));
+    const anio   = noDate(pick(r, 'Año', 'year'));
+    const pais   = pick(r, 'País/TZ', 'country');
+    let statusFinal = pick(r, 'Status', 'status');
+    if (statusFinal === 'empty') statusFinal = 'failed';
+    const statusHTML = statusFinal === 'ok'      ? `<span style="color:#1d8a3a;font-weight:600;">${statusFinal}</span>`
+                     : statusFinal === 'partial' ? `<span style="color:#b8810a;font-weight:600;">${statusFinal}</span>`
+                     : statusFinal === 'failed'  ? `<span style="color:#a32d2d;font-weight:600;">${statusFinal}</span>`
+                     : statusFinal;
+    return `
+    <tr>
+      <td>${fecha}</td>
+      <td>${marca}</td>
+      <td>${modelo}</td>
+      <td>${serial}</td>
+      <td>${tons}</td>
+      <td>${mes}</td>
+      <td>${anio}</td>
+      <td>${statusHTML}</td>
+      <td>${pais}</td>
+    </tr>`;
+  }).join('');
+}
+function downloadCSV() {
+  const token = sessionStorage.getItem('hvac_admin_token');
+  window.open(HVAC_LOGGER_URL + '?token=' + encodeURIComponent(token) + '&action=csv', '_blank');
+}
+function downloadXLSX() {
+  const rows = getFilteredRows();
+  const headerMap = {
+    'Fecha':'timestamp','Marca':'brand','Modelo':'model','Serial':'serial',
+    'Tons':'tons','BTU':'btu','Año':'year','Mes':'month','Status':'status',
+    'País/TZ':'country','Idioma':'language','Navegador':'userAgent',
+    'Origen':'referrer','Pantalla':'screenSize'
+  };
+  const headerLabels = Object.keys(headerMap);
+  let html = '<table border="1"><tr>' + headerLabels.map(h=>`<th>${h}</th>`).join('') + '</tr>';
+  rows.forEach(r => {
+    html += '<tr>' + headerLabels.map(h => `<td>${(r[headerMap[h]]==null?'':String(r[headerMap[h]])).replace(/</g,'&lt;')}</td>`).join('') + '</tr>';
+  });
+  html += '</table>';
+  const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'hvac-consultas-' + new Date().toISOString().slice(0,10) + '.xls';
+  a.click();
+}
+
+// Close admin when clicking the backdrop
+document.getElementById('admin-panel').addEventListener('click', function(e) {
+  if (e.target === this) closeAdminPanel();
+});
+
+// Keyboard shortcut Ctrl + Shift + A
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+    e.preventDefault();
+    openAdminPanel();
+  }
+});
+
+// URL ?admin=1
+if (new URLSearchParams(location.search).get('admin') === '1') {
+  window.addEventListener('load', openAdminPanel);
+}
 </script>
 </body>
 </html>
