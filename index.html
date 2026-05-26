@@ -4,6 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HVAC Info Checker — By Arq. Orlando Argueta</title>
+  
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-6NYL2ZDQMH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-6NYL2ZDQMH');
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
@@ -3063,6 +3072,32 @@ function checkHVAC() {
     status: _status
   });
 
+  // ── Google Analytics Events ──
+  if (typeof gtag !== 'undefined') {
+    // Track HVAC search with result status
+    gtag('event', 'hvac_search', {
+      'brand': brand,
+      'has_model': !!model,
+      'has_serial': !!serial,
+      'result_status': _status,
+      'capacity_found': gotTons,
+      'date_found': gotDate
+    });
+
+    // Track specific result types
+    if (_status === 'ok') {
+      gtag('event', 'search_success', {
+        'brand': brand,
+        'result_type': model && serial ? 'full' : model ? 'capacity_only' : 'date_only'
+      });
+    } else if (_status === 'failed') {
+      gtag('event', 'search_failed', {
+        'brand': brand,
+        'input_type': model && serial ? 'both' : model ? 'model_only' : 'serial_only'
+      });
+    }
+  }
+
   document.getElementById('form-section').style.display   = 'none';
   document.getElementById('result-section').style.display = 'block';
 
@@ -3128,6 +3163,16 @@ function sendReport() {
       closeReportModal();
       ['rep-brand','rep-model','rep-serial','rep-notes'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('success-overlay').classList.add('show');
+      
+      // Google Analytics: Track successful error report
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'error_report_sent', {
+          'brand': brand || 'not_specified',
+          'has_model': !!model,
+          'has_serial': !!serial,
+          'has_notes': !!notes
+        });
+      }
     } else {
       alert('Could not send the report. Please try again.');
     }
@@ -3214,6 +3259,13 @@ function openAdminPanel() {
   document.getElementById('admin-panel').classList.add('open');
   const saved = sessionStorage.getItem('hvac_admin_token');
   if (saved) { document.getElementById('admin-token-input').value = saved; adminLogin(); }
+  
+  // Google Analytics: Track admin panel access
+  if (typeof gtag !== 'undefined') {
+    gtag('event', 'admin_panel_open', {
+      'has_saved_token': !!saved
+    });
+  }
 }
 function closeAdminPanel() {
   document.getElementById('admin-panel').classList.remove('open');
