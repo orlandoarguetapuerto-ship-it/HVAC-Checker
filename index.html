@@ -1737,21 +1737,62 @@ function parseTraneSerial(raw) {
   };
 
   // ─────────────────────────────────────────────────────────────
-  // PRIORITY RULE (per Nuevos_modelos.docx — rewrites old length-9 rule)
+  // STYLE 2 (2002+): Factory Letter + Year + Month Letter + Sequence
+  // ─────────────────────────────────────────────────────────────
+  // Format: [Factory letter] [YY] [Month letter] [sequence digits]
+  // Example: C17G04433 → factory=C, year=17=2017, G=July → July 2017
+  //
+  // CRITICAL DETECTION RULES (to avoid interference with Priority Rule):
+  //   1. Position 1: any letter A-Z (factory code)
+  //   2. Positions 2-3: 2 digits ≤ 26 (current year check)
+  //   3. Position 4: MUST be a valid month letter (A-M, excluding I)
+  //
+  // This runs FIRST to catch modern serials like C17G04433 that would
+  // otherwise be misinterpreted by the Priority Rule (C=1988 is wrong).
+  // ─────────────────────────────────────────────────────────────
+  const NOW_YR2_STYLE2 = new Date().getFullYear() - 2000;  // e.g. 26 in 2026
+
+  if (
+    /^[A-Z]$/.test(s[0]) &&
+    /^\d{2}$/.test(s.substring(1, 3)) &&
+    TRANE_MONTH_MAP[s[3]] !== undefined
+  ) {
+    const yr2 = parseInt(s.substring(1, 3), 10);
+    
+    // CRITICAL: year must be ≤ current year (rejects future dates)
+    if (yr2 <= NOW_YR2_STYLE2) {
+      const year = yr2 <= 30 ? 2000 + yr2 : 1900 + yr2;
+      const month = TRANE_MONTH_MAP[s[3]];
+      
+      if (year >= 1950 && year <= 2040) {
+        return {
+          year, month,
+          style: 'Style 2 (2002+) — Factory letter · 2-digit year · month letter',
+          ambiguous: false
+        };
+      }
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // PRIORITY RULE: Year-Letter + Week (pre-2002 legacy format)
   // ─────────────────────────────────────────────────────────────
   // If the serial starts with one of the Trane year-letters AND the
   // 1-2 chars immediately following the letter are digits forming a
-  // valid week (1-53), interpret it as:
+  // valid week (1-53) AND position 3 is also a digit (not a letter),
+  // interpret it as:
   //   pos 1     = year letter
   //   pos 2-3   = 2-digit week (preferred)  OR  pos 2 = 1-digit week
+  //   pos 3+    = must be numeric (to distinguish from Style 2)
   //   remaining = sequence (ignored)
   //
-  // This runs BEFORE Style 2 to fix serials like R24103967D
-  // (10 chars total — old rule required exactly 9). It also takes
-  // priority over Style 2 when the letter+digits clearly fit.
+  // CRITICAL: Position 3 MUST be a digit to avoid capturing Style 2
+  // serials like C17G04433 (where pos 3 = 'G' = month letter).
+  //
   // Examples:
-  //   R24103967D → R=2000, week 24 → June 2000
-  //   K06xxxxxx  → K=1995, week 06 → February 1995
+  //   R24103967D → R=2000, week 24, pos3='1'(digit) → June 2000 ✓
+  //   K06123456  → K=1995, week 06, pos3='1'(digit) → February 1995 ✓
+  //   C17G04433  → C=1988, week 17, pos3='G'(LETTER) → REJECTED ✓
   // ─────────────────────────────────────────────────────────────
   if (TRANE_YEAR_LETTERS[s[0]] !== undefined && /^\d/.test(s[1] || '')) {
     const year = TRANE_YEAR_LETTERS[s[0]];
@@ -1759,44 +1800,38 @@ function parseTraneSerial(raw) {
     // Prefer 2-digit week if both pos[1] and pos[2] are digits AND the
     // resulting 2-digit number is in 1-53. Otherwise fall back to 1-digit.
     let week = null;
+    let weekEndPos = -1;  // track where the week digits end
+
     if (/^\d{2}/.test(s.substring(1, 3))) {
       const w2 = parseInt(s.substring(1, 3), 10);
-      if (w2 >= 1 && w2 <= 53) week = w2;
+      if (w2 >= 1 && w2 <= 53) {
+        week = w2;
+        weekEndPos = 3;  // week ends at position 3 (0-indexed)
+      }
     }
     if (week === null) {
       const w1 = parseInt(s[1], 10);
-      if (!isNaN(w1) && w1 >= 1 && w1 <= 9) week = w1;
+      if (!isNaN(w1) && w1 >= 1 && w1 <= 9) {
+        week = w1;
+        weekEndPos = 2;  // week ends at position 2 (0-indexed)
+      }
     }
 
-    if (week !== null) {
-      return {
-        year, week,
-        month: weekToMonth(week),
-        style: 'Year-letter prefix — Letter encodes year, following digits = fiscal week',
-        ambiguous: false
-      };
-    }
-  }
-
-  // ── Style 2 (pre-2002): Letter + 2-digit year + month letter + sequence ──
-  // Format: [Factory letter] [YY] [Month letter] [sequence digits]
-  // Example: A92M07217 → factory=A, year=92=1992, M=December
-  // Detection: pos[0]=letter, pos[1-2]=digits, pos[3]=valid month letter
-  // NOTE: Only fires if the priority year-letter rule above did NOT match.
-  if (
-    /^[A-Z]$/.test(s[0]) &&
-    /^\d{2}$/.test(s.substring(1, 3)) &&
-    TRANE_MONTH_MAP[s[3]] !== undefined
-  ) {
-    const yr2  = parseInt(s.substring(1, 3), 10);
-    const year = yr2 <= 30 ? 2000 + yr2 : 1900 + yr2;
-    const month = TRANE_MONTH_MAP[s[3]];
-    if (year >= 1950 && year <= 2040) {
-      return {
-        year, month,
-        style: 'Style 2 (pre-2002) — Factory letter · 2-digit year · month letter',
-        ambiguous: false
-      };
+    // CRITICAL CHECK: Position after week MUST be a digit (not a letter)
+    // to distinguish from Style 2 format [Letter][YY][MonthLetter]
+    if (week !== null && weekEndPos > 0) {
+      const charAfterWeek = s[weekEndPos] || '';
+      
+      // Only return if char after week is a digit OR end of string
+      if (/^\d$/.test(charAfterWeek) || charAfterWeek === '') {
+        return {
+          year, week,
+          month: weekToMonth(week),
+          style: 'Year-letter prefix — Letter encodes year, following digits = fiscal week',
+          ambiguous: false
+        };
+      }
+      // If charAfterWeek is a letter, this might be Style 2 — let it fall through
     }
   }
 
