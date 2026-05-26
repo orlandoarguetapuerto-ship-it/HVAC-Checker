@@ -306,6 +306,7 @@
           <div>BTU code × 1,000 ÷ 12,000 = tons &nbsp;·&nbsp; e.g. <code>ZGB<strong>150</strong>S4BM1G</code> → 150×1000÷12000 = 12.5 tons</div>
           <div>Common codes: 024=2T · 030=2.5T · 036=3T · 042=3.5T · 048=4T · 060=5T · 072=6T · 090=7.5T · 120=10T · 150=12.5T</div>
           <div>Example: <code>KGB<strong>060</strong>S4DU4G</code> → 5 tons &nbsp;·&nbsp; <code>ZGB<strong>060</strong>S4BH1G</code> → 5 tons</div>
+          <div><strong>NEW — CX series</strong>: <code>CX</code> models use positions 5–6 ÷ 12. Example: <code>CX35-<strong>60</strong>S-1H</code> → 60/12 = 5 tons.</div>
         </div>
       </details>
 
@@ -331,6 +332,10 @@
           <div><code>48TC_ _ _ _</code> (07–16 range) — Positions 7–8: 07=6T · 08=7.5T · 09=8.5T · 12=10T · 14=12.5T · 16=15T</div>
           <div><code>48TC_ _ _ _</code> (17–30 range) — Positions 7–8: 17=15T · 20=17.5T · 24=20T · 28=26T · 30=27.5T</div>
           <div><code>24ACC_ _ _</code> / <code>24SCA_ _ _</code> — Digits 7–8 encode BTU code (36=3T · 48=4T · 60=5T · 24=2T · 30=2.5T…)</div>
+          <div><strong>NEW — Unified packaged table</strong> applies to: <code>48TF</code> · <code>50TF</code> · <code>48TJ</code> · <code>50TJ</code> · <code>09BY</code> · <code>48LC</code> · <code>50LC</code> · <code>48TC</code> · <code>50TC</code> · <code>48XC</code>/<code>50XC</code> — same code → tons map as 48HC/48FC.</div>
+          <div><strong>NEW — High-tonnage</strong> <code>48BV</code>/<code>50BV</code>: 020=18T · 024=20T · 028=25T · 034=30T · 044=40T · 054=50T · 064=60T (positions 6-7-8).</div>
+          <div><strong>NEW — Direct tons read</strong> <code>48A2/AJ/AK/AW/AY/A3/A4/A5</code> · <code>50A2/AJ/AK/AW/AY/A3/A4/A5</code> · <code>48P2…P9</code> · <code>50P2…P9</code>: tons placed directly at positions 6-7-8 (020=20T · 060=60T · etc).</div>
+          <div><strong>NEW — Divide-by-12</strong> <code>48EZ</code>/<code>48ES</code> (positions 7-8 ÷ 12) · <code>48AH</code>/<code>50AH</code> (positions 7-8-9 ÷ 12).</div>
         </div>
       </details>
 
@@ -354,6 +359,7 @@
           <div><strong>Commercial packaged (YHC/THC)</strong> — digits 4–6 = nominal MBh: 037=3T · 047=4T · 067=5T · etc.</div>
           <div><strong>Large commercial (GAC/EAC)</strong> — digits 4–6 = nominal MBh: 180=15T · 210=17.5T · 240=20T · 300=25T</div>
           <div>Common codes: 018=1.5T · 024=2T · 030=2.5T · 036=3T · 042=3.5T · 048=4T · 060=5T · 072=6T · 090=7.5T · 120=10T · 150=12.5T · 180=15T</div>
+          <div><strong>NEW — Trane "S?H?" commercial</strong> (pos 1=S · pos 2=A/E/F/L/S/X · pos 3=H · pos 4=L/K): tons read DIRECTLY at positions 6–7. Most codes = direct tons (20,25,30,40,50,55,60,70,75,24,29,36,48,59,73,80,89,90). Special: <code>11</code>=105T · <code>12</code>=115T · <code>13</code>=30T.</div>
         </div>
         <div class="legend">Trane, American Standard, Ameristar, Oxbox and GE residential/commercial HVAC all share this naming structure. The 3-digit BTU/MBh code is always the key.</div>
       </details>
@@ -463,6 +469,7 @@
           <div>Month letters: A=Jan · B=Feb · C=Mar · D=Apr · E=May · F=Jun · G=Jul · H=Aug · J=Sep · K=Oct · L=Nov · M=Dec</div>
           <div>Example: <code>16<strong>06B</strong>13871</code> → Year 2006 · B = February → <strong>February 2006</strong></div>
           <div>Example: <code>58<strong>99L</strong>17212</code> → Year 1999 · L = November → <strong>November 1999</strong></div>
+          <div><strong>NEW — Strict 10-11 digit validation:</strong> Canonical Lennox serials have 10 or 11 characters. When the length matches AND the year is ≤ current year, the result is flagged as <em>Strict 10-11 digit format</em> (highest confidence). Shorter serials still work for backward compatibility.</div>
         </div>
         <div class="legend">Style 1 has been used exclusively since 1973. First two digits = factory/plant code (ignored for date).</div>
       </details>
@@ -503,6 +510,10 @@
           <div>Example: <code><strong>10</strong><strong>16</strong>1KEDAA</code> → Year 2010 · Week 16 → <strong>~April 2010</strong></div>
           <div>Example: <code><strong>13</strong><strong>03</strong>13596L</code> → Year 2013 · Week 03 → <strong>~January 2013</strong></div>
           <div>Fiscal week → Month: 1–4=Jan · 5–8=Feb · 9–13=Mar · 14–17=Apr · 18–22=May · 23–26=Jun · 27–30=Jul · 31–35=Aug · 36–39=Sep · 40–43=Oct · 44–48=Nov · 49–53=Dec</div>
+          <div style="margin-top:6px"><strong>NEW — Year-letter prefix (priority rule):</strong> If pos 1 is a year letter (W=1983, X=1984, Y=1985, S=1986, B=1987, C=1988, D=1989, E=1990, F=1991, G=1992, H=1993, J=1994, K=1995, L=1996, M=1997, N=1998, P=1999, R=2000, Z=2001) AND pos 2 (or 2–3) is the fiscal week, this format is used regardless of total serial length.</div>
+          <div>Example: <code><strong>R</strong><strong>24</strong>103967D</code> → R=2000 · Week 24 → <strong>~June 2000</strong> (works on 10-char serials too).</div>
+          <div style="margin-top:6px"><strong>NEW — Invalid-week recovery for Style 1 (2010+):</strong> If digits 3–4 form a week &gt; 53 (impossible), reinterpret as 1-digit-year + 2-digit-week.</div>
+          <div>Example: <code><strong>1</strong><strong>36</strong>110672D</code> → "13"+"61" invalid → recover as 1+"36" → 2001 · Week 36 → <strong>~September 2001</strong></div>
         </div>
         <div class="legend">Trane, American Standard, Ameristar, Ingersoll Rand, Oxbox and GE all share these formats. The MFR date is also commonly printed on the data plate.</div>
       </details>
@@ -675,6 +686,42 @@
     table    : map of capacity code → tons (string, e.g. "3.0")
     label    : human-readable series name for display
 */
+
+// ─────────────────────────────────────────────────────────────────
+// Shared unified Carrier packaged-rooftop tonnage table (per docx).
+// Reused by:  48FC/50FC/48FE/50FE · 48HC · 50HE/50HJ · 48FF/50FF/50TF
+//             50TF/50TJ · 48TF/48TJ · 48LC/50LC · 48TC/50TC · 09BY
+// Codes supported: both 2-digit (e.g. "08") and 3-digit (e.g. "008").
+//   04/004 = 3.0T · 05/005 = 4.0T · 06/006 = 5.0T · 07/007 = 6.0T
+//   08/008 = 7.5T · 09/009 = 8.5T · 11/011 = 10.0T · 12/012 = 10.0T
+//   14/014 = 12.5T · 15/015 = 12.5T · 16/016 = 15.0T · 17/017 = 15.0T
+//   20/020 = 17.5T · 24/024 = 20.0T · 28/028 = 25.0T · 30/030 = 27.5T
+// Special legacy 48HJ entries (003/023) kept in their own table below.
+// ─────────────────────────────────────────────────────────────────
+const SHARED_CARRIER_PKG_TABLE = {
+  '04': '3.0',  '05': '4.0',  '06': '5.0',  '07': '6.0',
+  '08': '7.5',  '09': '8.5',  '11': '10.0', '12': '10.0',
+  '14': '12.5', '15': '12.5', '16': '15.0', '17': '15.0',
+  '20': '17.5', '24': '20.0', '28': '25.0', '30': '27.5',
+  '004': '3.0',  '005': '4.0',  '006': '5.0',  '007': '6.0',
+  '008': '7.5',  '009': '8.5',  '011': '10.0', '012': '10.0',
+  '014': '12.5', '015': '12.5', '016': '15.0', '017': '15.0',
+  '020': '17.5', '024': '20.0', '028': '25.0', '030': '27.5'
+};
+
+// Shared HIGH-tonnage table for 48BV / 50BV (per docx).
+// Codes appear at the same position as other packaged units (6-7-8),
+// but the values map to MUCH higher tons because BV is a large
+// rooftop/condensing platform. Per the user's docx:
+//   020=18T · 024=20T · 028=25T · 034=30T · 044=40T · 054=50T · 064=60T
+// (also include common adjacent denominations for safety: 030,040,050,060,070,080,090,100)
+const CARRIER_BV_HIGH_TABLE = {
+  '020': '18.0', '024': '20.0', '028': '25.0', '030': '27.5',
+  '034': '30.0', '040': '35.0', '044': '40.0', '050': '45.0',
+  '054': '50.0', '060': '55.0', '064': '60.0', '070': '65.0',
+  '080': '70.0', '090': '80.0', '100': '90.0'
+};
+
 const CARRIER_SERIES = [
 
   // ── 40RU — Packaged Air Handling Unit (Puron R-410A) ─────────
@@ -724,16 +771,30 @@ const CARRIER_SERIES = [
     }
   },
 
-  // ── 09BYN — Remote Air-Cooled Belt-Drive Condenser ───────────
-  // Example: 09BYN012601 → prefix "09BYN"(5) → rest "012601" → code "012" → 10 tons
-  // Nominal Tons: 006=5T · 008=7.5T · 012=10T · 014=12T · 016=15T · 024=20T
+  // ── 09BY / 09BYN — Remote Air-Cooled Condenser ───────────────
+  // Per docx: 09BY now unified with shared Carrier packaged-rooftop
+  // tonnage table. Catches both 09BY (any suffix) and 09BYN.
+  // The original 09BYN values (006=5.0, 008=7.5, 012=10.0, 014=12.0,
+  // 016=15.0, 024=20.0) are preserved within the shared table — values
+  // for codes 012/014/016/024 map identically. The codes 006 and 008
+  // are kept as legacy entries via the dedicated table below.
   {
-    prefix: /^09BYN/,
+    prefix: /^09BY/,
     prefixLen: 5,
-    label: '09BYN — Remote Air-Cooled Condenser (Belt Drive)',
+    digitLen: 3,
+    label: '09BY/09BYN — Remote Air-Cooled Condenser (shared table)',
     table: {
-      '006': '5.0', '008': '7.5', '012': '10.0',
-      '014': '12.0', '016': '15.0', '024': '20.0'
+      // Legacy 09BYN-specific codes
+      '006': '5.0', '008': '7.5',
+      // Shared codes (compatible with main table)
+      '04': '3.0',  '05': '4.0',  '06': '5.0',  '07': '6.0',
+      '08': '7.5',  '09': '8.5',  '11': '10.0', '12': '10.0',
+      '14': '12.0', '15': '12.5', '16': '15.0', '17': '15.0',
+      '20': '17.5', '24': '20.0', '28': '25.0', '30': '27.5',
+      '004': '3.0',  '005': '4.0',  '007': '6.0',
+      '009': '8.5',  '011': '10.0', '012': '10.0',
+      '014': '12.0', '015': '12.5', '016': '15.0', '017': '15.0',
+      '020': '17.5', '024': '20.0', '028': '25.0', '030': '27.5'
     }
   },
 
@@ -774,17 +835,15 @@ const CARRIER_SERIES = [
   },
 
   // ── 50LC — WeatherExpert Ultra High-Efficiency Rooftop ────────
-  // Example: 50LC0005A2A5 → prefix "50LC"(4) + heat(1) + refrig(1) = skip 6
-  //          → rest "05A2A5" → code "05" → 4 tons
-  // Nominal Cooling Tons: 04=3T · 05=4T · 06=5T
+  // Per docx: 50LC now uses the same unified Carrier packaged-rooftop
+  // table as 48FC/50FC/48FE/50FE/48HC/etc. Same 2-digit code pattern
+  // as 48HC/50HC: prefixLen=6 (skip "50LC??"), digitLen=2.
   {
     prefix: /^50LC/,
     prefixLen: 6,
     digitLen: 2,
-    label: '50LC WeatherExpert — Ultra High-Efficiency Packaged Rooftop',
-    table: {
-      '04': '3.0', '05': '4.0', '06': '5.0'
-    }
+    label: '50LC WeatherExpert — Ultra High-Efficiency Packaged Rooftop (shared table)',
+    table: SHARED_CARRIER_PKG_TABLE
   },
 
   // ── 38MA — Mini-Split Outdoor Unit ───────────────────────────
@@ -806,21 +865,15 @@ const CARRIER_SERIES = [
   },
 
   // ── 50TC — WeatherMaker Standard Efficiency Packaged Rooftop ─
-  // Updated per docx: full denominations 04..14 + missing 16=15T added.
-  // Format: 50TC [RefrigOpt] [2-digit tons code] ...
-  // Cooling Tons table (full):
-  //   04=3T · 05=4T · 06=5T · 07=6T · 08=7.5T · 09=8.5T
-  //   12=10T · 14=12.5T · 16=15T
+  // Per docx: 50TC now uses the same unified Carrier packaged-rooftop
+  // table (shared with 48FC/50FC/48FE/50FE/48HC/48LC/50LC/etc.).
+  // Format: 50TC [RefrigOpt] [2-or-3-digit tons code] ...
   {
     prefix: /^50TC/,
     prefixLen: 5,
-    digitLen: 2,
-    label: '50TC WeatherMaker — Standard Efficiency Packaged Rooftop (Electric Heat)',
-    table: {
-      '04': '3.0',  '05': '4.0',  '06': '5.0',  '07': '6.0',
-      '08': '7.5',  '09': '8.5',
-      '12': '10.0', '14': '12.5', '16': '15.0'
-    }
+    digitLen: 3,
+    label: '50TC WeatherMaker — Standard Efficiency Packaged Rooftop (shared table)',
+    table: SHARED_CARRIER_PKG_TABLE
   },
 
   // ── 50XL — Packaged Air Conditioner ─────────────────────────
@@ -887,14 +940,15 @@ const CARRIER_SERIES = [
   },
 
   // ── 48TJ series ─────────────────────────────────────────────
-  // Example: 48TJE014Z--903AA → after prefix "48TJ", first 3-digit group = "014"
+  // Per docx: 48TJ now unified with shared Carrier packaged-rooftop
+  // tonnage table. Legacy small codes (008, 012, 014) preserved within
+  // the shared table for backward compatibility.
   {
     prefix: /^48TJ/,
     prefixLen: 4,
-    label: '48TJ — Packaged Rooftop (Gas Heat, Export)',
-    table: {
-      '008': '6.1', '012': '8.3', '014': '10.2'
-    }
+    digitLen: 3,
+    label: '48TJ — Packaged Rooftop (Gas Heat, Export) — shared table',
+    table: SHARED_CARRIER_PKG_TABLE
   },
 
   // ── 48HC series — WeatherMaster High-Efficiency Rooftop ─────
@@ -935,20 +989,15 @@ const CARRIER_SERIES = [
   },
 
   // ── 48TC series ──────────────────────────────────────────────
-  // Example: 48TCEA04A2M6A0B0C0 → after prefix "48TC", first 2-digit group = "04"
-  // Updated per docx: added 16=15T missing denomination
+  // Per docx: 48TC now uses the same unified Carrier packaged-rooftop
+  // table (shared with 48FC/50FC/48FE/50FE/48HC/48LC/50LC/50TC/etc.).
+  // Accepts both 2-digit and 3-digit BTU codes.
   {
     prefix: /^48TC/,
     prefixLen: 4,
-    digitLen: 2,
-    label: '48TC WeatherMaker — Packaged Rooftop',
-    table: {
-      '03': '2.5', '04': '3.0', '05': '4.0', '06': '5.0',
-      '07': '6.0', '08': '7.5', '09': '8.5',
-      '12': '10.0','14': '12.5','16': '15.0',
-      '17': '15.0','20': '17.5','24': '20.0',
-      '28': '25.0','30': '27.5'
-    }
+    digitLen: 3,
+    label: '48TC WeatherMaker — Packaged Rooftop (shared table)',
+    table: SHARED_CARRIER_PKG_TABLE
   },
 
   // ── 24ACC / 24SCA / 24SNA — residential split-system condensers ──
@@ -1197,6 +1246,124 @@ const CARRIER_SERIES = [
     label: '37MG/37MH — Outdoor Unit R454B (digits 8-9 ÷ 12)',
     table: null
   },
+
+  // ══════════════════════════════════════════════════════════════
+  // NEW CARRIER SERIES (added per Nuevos_modelos.docx)
+  // ══════════════════════════════════════════════════════════════
+
+  // ── 48TF / 50TJ — Packaged Rooftops (shared table) ─────────────
+  // Per docx: same calculation as 48FC/50FC/48FE family.
+  // (48TJ already covered above with shared table; 50TC also done;
+  //  50TF is covered by the earlier 48FF/50FF/50TF entry.)
+  {
+    prefix: /^(48TF|50TJ)/,
+    prefixLen: 5,
+    digitLen: 3,
+    label: '48TF/50TJ — Packaged Rooftop (shared table)',
+    table: SHARED_CARRIER_PKG_TABLE
+  },
+
+  // ── 48LC — Packaged Rooftop (shared table) ─────────────────────
+  // Per docx: 48LC unified with shared Carrier packaged table.
+  // Same 2-digit code pattern as 48HC: prefixLen=6 (skip "48LC??"),
+  // digitLen=2.
+  {
+    prefix: /^48LC/,
+    prefixLen: 6,
+    digitLen: 2,
+    label: '48LC WeatherExpert — Packaged Rooftop (shared table)',
+    table: SHARED_CARRIER_PKG_TABLE
+  },
+
+  // ── 48BV / 50BV — Large Packaged Rooftop (high tonnage) ────────
+  // Per docx: code at positions 6-7-8, but maps to MUCH higher tons
+  // than the standard shared table.
+  //   020=18T · 024=20T · 028=25T · 034=30T · 044=40T · 054=50T · 064=60T
+  {
+    prefix: /^(48BV|50BV)/,
+    prefixLen: 5,
+    digitLen: 3,
+    label: '48BV/50BV — Large Packaged Rooftop (high tonnage)',
+    table: CARRIER_BV_HIGH_TABLE
+  },
+
+  // ── 48EZ / 48ES — Packaged Rooftop (BTU code ÷ 12) ─────────────
+  // Per docx: divide the BTU code (positions 7,8 — meaning the 2
+  // significant digits of the 3-digit Carrier nomenclature code) by 12
+  // to get tons. Real Carrier 48EZ/48ES models use a 3-digit code:
+  //   48EZ-[letter]-[3-digit BTU]-[options], e.g. 48EZE060... = "060"
+  // Examples:
+  //   48EZA024040 → after "48EZA"(5) → first 3-digit "024" → 24/12 = 2T
+  //   48EZE060000 → after "48EZE"(5) → first 3-digit "060" → 60/12 = 5T
+  //   48EZX036050 → after "48EZX"(5) → first 3-digit "036" → 36/12 = 3T
+  {
+    prefix: /^48E[ZS]/,
+    prefixLen: 5,
+    digitLen: 3,
+    calcDiv12: true,
+    label: '48EZ/48ES — Packaged Rooftop (BTU code ÷ 12)',
+    table: null
+  },
+
+  // ── 48A* / 50A* — Commercial Packaged (DIRECT tons read) ───────
+  // Per docx: models starting with 48A2, 48AJ, 48AK, 48AW, 48AY,
+  // 48A3, 48A4, 48A5 (and same prefixes for 50A*) have the tons
+  // value placed DIRECTLY in the model number at positions 6-7-8.
+  //   020 = 20T · 060 = 60T · 030 = 30T · ... (direct lookup)
+  // Accepts any code from 020 to 200 inclusive.
+  {
+    prefix: /^(48|50)A[2-5JKWY]/,
+    prefixLen: 5,
+    digitLen: 3,
+    calcDirect: true,
+    directMin: 20,
+    directMax: 200,
+    label: '48A*/50A* — Commercial Packaged (tons read directly from positions 6-7-8)',
+    table: null
+  },
+
+  // ── 48P* / 50P* — Commercial Packaged (DIRECT tons read) ───────
+  // Per docx: 48P2-48P9 and 50P2-50P9 all read tons directly from
+  // positions 6-7-8 of the model.
+  //   020 = 20T · 060 = 60T · etc.
+  {
+    prefix: /^(48|50)P[2-9]/,
+    prefixLen: 5,
+    digitLen: 3,
+    calcDirect: true,
+    directMin: 20,
+    directMax: 200,
+    label: '48P*/50P* — Commercial Packaged (tons read directly from positions 6-7-8)',
+    table: null
+  },
+
+  // ── 48XC / 50XC — Packaged Rooftop (shared table, positions 6-7) ─
+  // Per docx: digits 6,7 use the SAME shared Carrier packaged table,
+  // but in a different position than 48HC/etc. With prefixLen=4 (just
+  // "48XC"/"50XC"), the first 2+ digit group lands at exactly pos 5-6.
+  // To enforce positions 6-7 specifically, we set prefixLen=5 to skip
+  // one extra char (refrig letter), so the 2-digit code starts at pos 6.
+  {
+    prefix: /^(48XC|50XC)/,
+    prefixLen: 5,
+    digitLen: 2,
+    label: '48XC/50XC — Packaged Rooftop (positions 6-7, shared table)',
+    table: SHARED_CARRIER_PKG_TABLE
+  },
+
+  // ── 48AH / 50AH — Packaged (digits 7-8-9 ÷ 12) ─────────────────
+  // Per docx: 3-digit code at positions 7,8,9 of the model, divided
+  // by 12 to give tons.
+  // Example: 48AHX-060...  → after prefix "48AHX" (5) → first 3-digit "060"
+  //          → 60/12 = 5T
+  {
+    prefix: /^(48|50)AH/,
+    prefixLen: 6,
+    digitLen: 3,
+    calcDiv12: true,
+    label: '48AH/50AH — Packaged (digits 7-8-9 ÷ 12)',
+    table: null
+  },
 ];
 
 /**
@@ -1248,7 +1415,45 @@ function extractTonsCarrier(model) {
       continue;
     }
 
-    const tons = series.table[code];
+    // ── New: calcDirect mode — code IS the tons (no division, no table) ──
+    // Used by Carrier 48A*/50A*/48P*/50P* etc. where 020=20T, 060=60T directly.
+    // Accepts any numeric code in the configured range [directMin, directMax].
+    if (series.calcDirect) {
+      const tonsNum = parseInt(code, 10);
+      const minT = series.directMin != null ? series.directMin : 1;
+      const maxT = series.directMax != null ? series.directMax : 200;
+      if (!isNaN(tonsNum) && tonsNum >= minT && tonsNum <= maxT) {
+        return {
+          tons: String(tonsNum % 1 === 0 ? tonsNum.toFixed(1) : tonsNum),
+          series: series.label,
+          codeUsed: code,
+          posUsed: null
+        };
+      }
+      continue;
+    }
+
+    // ── Default: table-based lookup ──
+    // Try the configured-length code first. If that misses, and the
+    // series uses 3-digit codes, fall back to a 2-digit slice — many
+    // Carrier shared tables include BOTH 2- and 3-digit keys (e.g.
+    // 48FC's "08" and "008"), and the actual model may have additional
+    // numeric digits after the BTU code (e.g. 48FCDM08123) that would
+    // otherwise cause substring(0, 3) to grab a junk code like "081".
+    let tons = series.table[code];
+
+    if (!tons && series.digitLen === 3 && code.length === 3) {
+      const code2 = code.substring(0, 2);
+      const tons2 = series.table[code2];
+      if (tons2) {
+        return {
+          tons: tons2,
+          series: series.label,
+          codeUsed: code2,
+          posUsed: null
+        };
+      }
+    }
 
     if (tons) {
       return {
@@ -1348,6 +1553,52 @@ function parseCarrierSerial(raw) {
 function extractTonsTrane(model) {
   if (!model) return null;
   const m = model.trim().toUpperCase().replace(/[\s\-]/g, '');
+
+  // ─────────────────────────────────────────────────────────────
+  // Trane "S?H?" Commercial — tons DIRECTLY at positions 6-7
+  // Per Nuevos_modelos.docx:
+  //   Position 1: 'S'
+  //   Position 2: A, E, F, L, S, or X
+  //   Position 3: 'H'
+  //   Position 4: 'L' or 'K'
+  //   Position 5: (anything — wildcard)
+  //   Positions 6-7: 2-digit tonnage code.
+  // Valid 2-digit codes (direct = tons):
+  //   20, 25, 30, 40, 50, 55, 60, 70, 75,
+  //   24, 29, 36, 48, 59, 73, 80, 89, 90
+  // Special non-direct codes:
+  //   11 → 105 tons
+  //   12 → 115 tons
+  //   13 → 30 tons
+  // Example: SAHL?20... → 20 tons · SXHK?11... → 105 tons
+  // ─────────────────────────────────────────────────────────────
+  if (/^S[AEFLSX]H[LK]/.test(m) && m.length >= 7) {
+    const code = m.substring(5, 7);                    // positions 6-7
+    if (/^\d{2}$/.test(code)) {
+      const TRANE_SH_DIRECT_CODES = new Set([
+        '20','25','30','40','50','55','60','70','75',
+        '24','29','36','48','59','73','80','89','90'
+      ]);
+      const TRANE_SH_SPECIAL = { '11': 105, '12': 115, '13': 30 };
+
+      let tonsNum = null;
+      if (TRANE_SH_DIRECT_CODES.has(code)) {
+        tonsNum = parseInt(code, 10);
+      } else if (TRANE_SH_SPECIAL[code] !== undefined) {
+        tonsNum = TRANE_SH_SPECIAL[code];
+      }
+
+      if (tonsNum !== null) {
+        return {
+          tons: String(tonsNum.toFixed(1)),
+          btu: tonsNum * 12000,
+          codeUsed: code,
+          series: 'Trane S?H? Commercial — tons read directly from positions 6-7',
+          posUsed: 'positions 6-7'
+        };
+      }
+    }
+  }
 
   // ── HDWA — Agility Centrifugal Water-cooled Chiller ───────────
   // Per docx: tonnage is read DIRECTLY from positions 5-7 of the model
@@ -1477,10 +1728,61 @@ function parseTraneSerial(raw) {
   const s = raw.trim().toUpperCase().replace(/\s+/g, '');
   if (s.length < 4) return null;
 
+  // Year-letter table (used for both the priority year-letter rule and
+  // the legacy Style 3 detection). W-Z 1983-1985, S 1986, B-F 1987-1991,
+  // G 1992, H-N 1993-1998, P 1999, R 2000, Z 2001.
+  const TRANE_YEAR_LETTERS = {
+    W:1983, X:1984, Y:1985, S:1986, B:1987, C:1988, D:1989, E:1990, F:1991,
+    G:1992, H:1993, J:1994, K:1995, L:1996, M:1997, N:1998, P:1999, R:2000, Z:2001
+  };
+
+  // ─────────────────────────────────────────────────────────────
+  // PRIORITY RULE (per Nuevos_modelos.docx — rewrites old length-9 rule)
+  // ─────────────────────────────────────────────────────────────
+  // If the serial starts with one of the Trane year-letters AND the
+  // 1-2 chars immediately following the letter are digits forming a
+  // valid week (1-53), interpret it as:
+  //   pos 1     = year letter
+  //   pos 2-3   = 2-digit week (preferred)  OR  pos 2 = 1-digit week
+  //   remaining = sequence (ignored)
+  //
+  // This runs BEFORE Style 2 to fix serials like R24103967D
+  // (10 chars total — old rule required exactly 9). It also takes
+  // priority over Style 2 when the letter+digits clearly fit.
+  // Examples:
+  //   R24103967D → R=2000, week 24 → June 2000
+  //   K06xxxxxx  → K=1995, week 06 → February 1995
+  // ─────────────────────────────────────────────────────────────
+  if (TRANE_YEAR_LETTERS[s[0]] !== undefined && /^\d/.test(s[1] || '')) {
+    const year = TRANE_YEAR_LETTERS[s[0]];
+
+    // Prefer 2-digit week if both pos[1] and pos[2] are digits AND the
+    // resulting 2-digit number is in 1-53. Otherwise fall back to 1-digit.
+    let week = null;
+    if (/^\d{2}/.test(s.substring(1, 3))) {
+      const w2 = parseInt(s.substring(1, 3), 10);
+      if (w2 >= 1 && w2 <= 53) week = w2;
+    }
+    if (week === null) {
+      const w1 = parseInt(s[1], 10);
+      if (!isNaN(w1) && w1 >= 1 && w1 <= 9) week = w1;
+    }
+
+    if (week !== null) {
+      return {
+        year, week,
+        month: weekToMonth(week),
+        style: 'Year-letter prefix — Letter encodes year, following digits = fiscal week',
+        ambiguous: false
+      };
+    }
+  }
+
   // ── Style 2 (pre-2002): Letter + 2-digit year + month letter + sequence ──
   // Format: [Factory letter] [YY] [Month letter] [sequence digits]
   // Example: A92M07217 → factory=A, year=92=1992, M=December
   // Detection: pos[0]=letter, pos[1-2]=digits, pos[3]=valid month letter
+  // NOTE: Only fires if the priority year-letter rule above did NOT match.
   if (
     /^[A-Z]$/.test(s[0]) &&
     /^\d{2}$/.test(s.substring(1, 3)) &&
@@ -1493,29 +1795,6 @@ function parseTraneSerial(raw) {
       return {
         year, month,
         style: 'Style 2 (pre-2002) — Factory letter · 2-digit year · month letter',
-        ambiguous: false
-      };
-    }
-  }
-
-  // ── Style 3 (pre-2002 alt): 9-character serial starting with a letter from
-  // the year-letter table (W-Z 1983-1985, S 1986, B-F 1987-1991, G 1992,
-  // H-N 1993-1998, P 1999, R 2000, Z 2001). Followed by 1-2 digits = week.
-  // Example: K06xxxxxx → K=1995, week 06 → Feb 1995
-  const TRANE_YEAR_LETTERS = {
-    W:1983, X:1984, Y:1985, S:1986, B:1987, C:1988, D:1989, E:1990, F:1991,
-    G:1992, H:1993, J:1994, K:1995, L:1996, M:1997, N:1998, P:1999, R:2000, Z:2001
-  };
-  if (s.length === 9 && TRANE_YEAR_LETTERS[s[0]] !== undefined && /^\d{1,2}/.test(s.substring(1))) {
-    const year   = TRANE_YEAR_LETTERS[s[0]];
-    // Take 2 digits if both are digits, otherwise just 1
-    const weekStr = /^\d{2}/.test(s.substring(1, 3)) ? s.substring(1, 3) : s.substring(1, 2);
-    const week    = parseInt(weekStr, 10);
-    if (week >= 1 && week <= 53) {
-      return {
-        year, week,
-        month: weekToMonth(week),
-        style: 'Style 3 (pre-2002) — Year-letter · Week',
         ambiguous: false
       };
     }
@@ -1535,10 +1814,30 @@ function parseTraneSerial(raw) {
   // If the candidate year would be in the future, fall through to the
   // 1-digit-year (2002–2009) branch — this rescues serials like 406100086L
   // (40 → would be 2040, so reinterpret as 4 → 2004 with week 06).
+  //
+  // ALSO: per Nuevos_modelos.docx, if the resulting week (digits 3-4) is
+  // > 53 (impossible), reinterpret using the 1-digit-year format.
+  // Example: 136110672D → "13"+"61" → week 61 invalid → use 1+"36" →
+  //          2001, week 36.
   if (firstTwo >= 10 && firstTwo <= NOW_YR2) {
     year  = 2000 + firstTwo;
     week  = parseInt(s.substring(2, 4), 10);
     style = 'Style 1 (2010+) — 2-digit year · 2-digit fiscal week';
+
+    if (week < 1 || week > 53) {
+      // Fallback: reinterpret as 1-digit-year format.
+      // Per docx: serial 136110672D → "13"+"61" invalid → recover as
+      // 1 (year 2001) + "36" (week 36) → 2001 week 36.
+      // Allow firstOne = 1..9 here (1 → 2001), since we're already
+      // committed to the "2-digit year was wrong" path.
+      if (firstOne >= 1 && firstOne <= 9) {
+        year  = 2000 + firstOne;
+        week  = parseInt(s.substring(1, 3), 10);
+        style = 'Style 1 (2001–2009) — 1-digit year · 2-digit fiscal week (recovered from invalid 2-digit week)';
+      } else {
+        return null;
+      }
+    }
   } else if (firstOne >= 2 && firstOne <= 9) {
     // 2002–2009: 1st digit = last digit of year
     year  = 2000 + firstOne;
@@ -1549,7 +1848,7 @@ function parseTraneSerial(raw) {
   }
 
   if (week < 1 || week > 53) return null;
-  if (year < 2002 || year > 2040) return null;
+  if (year < 2001 || year > 2040) return null;
 
   const month = weekToMonth(week);
   return { year, week, month, style, ambiguous: false };
@@ -2170,6 +2469,35 @@ function extractTonsLennox(model) {
   if (!model) return null;
   const m = model.trim().toUpperCase().replace(/[\s\-]/g, '');
 
+  // ─────────────────────────────────────────────────────────────
+  // Lennox CX model (per Nuevos_modelos.docx)
+  // Tons = (digits at positions 5-6 of the model) ÷ 12
+  // Example: CX35-60S-1H → strip → "CX3560S1H" → pos 5-6 = "60" → 60/12 = 5T
+  //          CX34-24/30  → strip(also '/') → "CX342430" → pos 5-6 = "24" → 24/12 = 2T
+  // ─────────────────────────────────────────────────────────────
+  if (/^CX/.test(m)) {
+    // Lennox CX often uses '/' in nominal-capacity notation (e.g. 24/30).
+    // Strip slashes too — they aren't part of the BTU code.
+    const cxStripped = m.replace(/\//g, '');
+    if (cxStripped.length >= 6) {
+      const codeStr = cxStripped.substring(4, 6);  // positions 5-6 (0-indexed 4-5)
+      if (/^\d{2}$/.test(codeStr)) {
+        const btuCode = parseInt(codeStr, 10);
+        if (btuCode > 0) {
+          const tonsRaw = btuCode / 12;
+          const tonsRounded = Math.round(tonsRaw * 2) / 2; // nearest 0.5
+          return {
+            tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
+            btu: btuCode * 1000,
+            codeUsed: codeStr,
+            series: 'Lennox CX — Commercial Split (positions 5-6 ÷ 12)',
+            posUsed: 'positions 5-6'
+          };
+        }
+      }
+    }
+  }
+
   // Find all consecutive digit groups of 2+ digits
   const groups = [...m.matchAll(/\d{2,}/g)];
 
@@ -2238,7 +2566,29 @@ function parseLennoxSerial(raw) {
   const year = yr2 <= 30 ? 2000 + yr2 : 1900 + yr2;
   if (year < 1973 || year > 2040) return null;
 
-  return { year, month, style: 'Style 1 (1973+)', ambiguous: false };
+  // ─────────────────────────────────────────────────────────────
+  // Length-validated "Strict 10-11 digit" Lennox rule (per docx)
+  // Per the docx: the serial must have 10-11 chars, the 2-digit year
+  // at positions 3-4 must not exceed the current 2-digit year (e.g. 26
+  // in 2026), and position 5 must be a valid month letter A-L.
+  // All three conditions met → flag as high-confidence strict format.
+  // For other lengths/years, keep current behavior (no break of
+  // existing matches) — just return without the strict label.
+  // ─────────────────────────────────────────────────────────────
+  const CURR_YR2 = new Date().getFullYear() - 2000;   // e.g. 26 in 2026
+  const isStrict = (
+    (s.length === 10 || s.length === 11) &&
+    yr2 <= CURR_YR2
+  );
+
+  return {
+    year,
+    month,
+    style: isStrict
+      ? 'Style 1 (1973+) — Strict 10-11 digit format'
+      : 'Style 1 (1973+)',
+    ambiguous: false
+  };
 }
 
 // ── Brand router: calls the correct parser based on selected brand ──
