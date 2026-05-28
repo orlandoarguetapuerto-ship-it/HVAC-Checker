@@ -2773,43 +2773,64 @@ const LENNOX_MONTH_MAP = {
 
 function parseLennoxSerial(raw) {
   const s = raw.trim().toUpperCase().replace(/\s+/g, '');
-  // Need at least 5 characters: 2 plant + 2 year + 1 month letter
-  if (s.length < 5) return null;
+  // Need at least 4 characters: 2 plant + at least 1 year digit + 1 month letter
+  if (s.length < 4) return null;
 
-  // First 4 chars must be digits (2 plant + 2 year)
-  if (!/^\d{4}/.test(s)) return null;
+  // First 2 chars must always be the plant/factory code (digits)
+  if (!/^\d{2}/.test(s)) return null;
 
-  const yr2   = parseInt(s.substring(2, 4), 10);
-  const mChar = s[4];
+  // After the 2-digit plant code, the year can be:
+  //   • 2 digits → e.g. "5995F..." where pos 3-4 = "95" → 1995
+  //   • 1 digit  → e.g. "895F..."  where pos 3   = "5"  → 2005
+  //                (pre-2010 equipment sometimes omitted the leading 0)
+  // We detect which by checking whether pos 5 (2-digit path) or pos 4
+  // (1-digit path) is a valid month letter.
+
+  const CURR_YR2 = new Date().getFullYear() - 2000;   // e.g. 26 in 2026
+  let yr2, mChar, yearDigits;
+
+  // ── Try 2-digit year first (pos 3-4 = year, pos 5 = month letter) ──
+  if (s.length >= 5 && /^\d/.test(s[2]) && /^\d/.test(s[3]) && /^[A-Z]$/.test(s[4])) {
+    const candidate = parseInt(s.substring(2, 4), 10);
+    const candidateYear = candidate <= CURR_YR2 ? 2000 + candidate : 1900 + candidate;
+    if (candidateYear >= 1973 && candidateYear <= 2040 && LENNOX_MONTH_MAP[s[4]]) {
+      yr2 = candidate;
+      mChar = s[4];
+      yearDigits = 2;
+    }
+  }
+
+  // ── Fallback: try 1-digit year (pos 3 = year digit, pos 4 = month letter) ──
+  // Used for pre-2010 serials where the leading zero was omitted.
+  // e.g. 895F06950 → plant=89, year=5→2005, month=F=June
+  if (yr2 === undefined && s.length >= 4 && /^\d$/.test(s[2]) && /^[A-Z]$/.test(s[3])) {
+    const digit = parseInt(s[2], 10);
+    // Single digit: 0-9 → map to 2000-2009 (pre-2010 era)
+    if (LENNOX_MONTH_MAP[s[3]]) {
+      yr2 = digit;        // treat as 2-digit: 5 → yr2=5 → 2005
+      mChar = s[3];
+      yearDigits = 1;
+    }
+  }
+
+  if (yr2 === undefined || !mChar) return null;
 
   const month = LENNOX_MONTH_MAP[mChar];
   if (!month) return null;
 
-  // 2-digit year: ≤30 → 2000s, >30 → 1900s
-  const year = yr2 <= 30 ? 2000 + yr2 : 1900 + yr2;
+  const year = yr2 <= CURR_YR2 ? 2000 + yr2 : 1900 + yr2;
   if (year < 1973 || year > 2040) return null;
 
-  // ─────────────────────────────────────────────────────────────
-  // Length-validated "Strict 10-11 digit" Lennox rule (per docx)
-  // Per the docx: the serial must have 10-11 chars, the 2-digit year
-  // at positions 3-4 must not exceed the current 2-digit year (e.g. 26
-  // in 2026), and position 5 must be a valid month letter A-L.
-  // All three conditions met → flag as high-confidence strict format.
-  // For other lengths/years, keep current behavior (no break of
-  // existing matches) — just return without the strict label.
-  // ─────────────────────────────────────────────────────────────
-  const CURR_YR2 = new Date().getFullYear() - 2000;   // e.g. 26 in 2026
-  const isStrict = (
-    (s.length === 10 || s.length === 11) &&
-    yr2 <= CURR_YR2
-  );
+  const isStrict = yearDigits === 2 && (s.length === 10 || s.length === 11);
 
   return {
     year,
     month,
-    style: isStrict
-      ? 'Style 1 (1973+) — Strict 10-11 digit format'
-      : 'Style 1 (1973+)',
+    style: yearDigits === 1
+      ? 'Style 2 (pre-2010) — 2-digit plant + 1-digit year + month letter'
+      : isStrict
+        ? 'Style 1 (1973+) — Strict 10-11 digit format'
+        : 'Style 1 (1973+)',
     ambiguous: false
   };
 }
