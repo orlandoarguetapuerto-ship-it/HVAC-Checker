@@ -11,7 +11,7 @@
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-6NYL2ZDQ0H');
+    gtag('config', 'G-6NYL2ZDQMH');
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -271,10 +271,14 @@
           <option value="">— Select your HVAC brand —</option>
           <option value="American Standard">American Standard</option>
           <option value="Ameristar">Ameristar</option>
+          <option value="AAON">AAON</option>
           <option value="Carrier">Carrier</option>
+          <option value="Climate Master">Climate Master</option>
           <option value="Coleman">Coleman</option>
+          <option value="Daikin">Daikin</option>
           <option value="General Electric">General Electric (GE)</option>
           <option value="Goodman">Goodman</option>
+          <option value="International Comfort Products">International Comfort Products (ICP)</option>
           <option value="Lennox">Lennox</option>
           <option value="Mitsubishi Electric">Mitsubishi Electric</option>
           <option value="Oxbox">Oxbox</option>
@@ -1233,9 +1237,28 @@ const CARRIER_SERIES = [
     }
   },
 
+  // ── 48NL/NH/NM/NE/NV · 50NL/NH/NM/NE/NV — Packaged (per Ultimas_marcas.docx)
+  // Per docx: for these specific N-series variants, the capacity code is at
+  // positions 6-7-8 of the model and maps DIRECTLY (table lookup):
+  //   018 = 1.5T · 024 = 2T · 030 = 2.5T · 036 = 3T
+  // NOTE: This rule is placed BEFORE the generic 48N[GLH] rule so that
+  //       48NL / 48NH match here first (more specific intent per docx).
+  // Example: 48NL-A036... → after prefix "48NL?"(5) → first 3-digit "036" → 3T
+  {
+    prefix: /^(48|50)N[LHMEV]/,
+    prefixLen: 5,
+    digitLen: 3,
+    fallthroughIfMissing: true,
+    label: '48N*/50N* (NL/NH/NM/NE/NV) — Packaged (positions 6-7-8 direct lookup)',
+    table: {
+      '018': '1.5', '024': '2.0', '030': '2.5', '036': '3.0'
+    }
+  },
+
   // ── 48NG / 48NL / 48NH — Packaged Gas/Electric (digits 7-8 ÷ 12)
   // Example: 48NG-B24040 → stripped 48NGB24040 → prefix len 5 → rest "24040"
   //          → first 2-digit "24" → 24/12 = 2T
+  // NOTE: 48NL/48NH that don't carry a 018/024/030/036 code fall through here.
   {
     prefix: /^48N[GLH]/,
     prefixLen: 5,
@@ -1471,6 +1494,11 @@ function extractTonsCarrier(model) {
         codeUsed: code,
         posUsed: null
       };
+    } else if (series.fallthroughIfMissing) {
+      // Per docx: some prefixes (e.g. 48NL/48NH) have a primary direct-lookup
+      // table, but should fall back to a more generic rule (e.g. 48N[GLH] ÷12)
+      // if the capacity code isn't in their specific table.
+      continue;
     } else {
       return {
         tons: null,
@@ -2140,25 +2168,147 @@ function parseRheemSerial(raw) {
 // NOTE: 100% isolated. Only runs when brand === 'Coleman'.
 // ═══════════════════════════════════════════════════════════════
 
-function extractTonsColeman(model) {
+// ─────────────────────────────────────────────────────────────────
+// Shared Goodman/Coleman prefix → capacity-position logic
+// (per Ultimas_marcas.docx — both brands use the same Goodman-style
+//  nomenclature where the 2-digit BTU code lives at a position that
+//  depends on the model prefix).
+//
+// Rule sets (1-indexed positions as described in the docx; converted
+// to 0-indexed slices here):
+//   GL, DS, GM, GC, GR        → positions 8,9   (and if pos 7 == '1',
+//                               prepend that '1' → 3-digit code)
+//   GX, GS, SS, GME, GMH,
+//   GCH, GMV, CAP, CAU,
+//   CHP, CSC                  → positions 7,8   (if pos 6 == '1' → prepend)
+//   AM                        → positions 5,6   (no prepend rule)
+//   CH, GP, GK, GME8, GMH8,
+//   GD, GMS8, GHS8, GDS8, AV  → positions 6,7   (if pos 5 == '1' → prepend)
+//   AS, AR, AW, AC            → positions 5,6   (no prepend rule)
+//
+// The matched 2-digit code (optionally 3-digit with leading 1) ÷ 12 = tons.
+//
+// Special Goodman model: MBVB → positions 5,6 are CFM (12=1200, 16=1600,
+//   20=2000); tons = CFM ÷ 400  (1 ton = 400 CFM).
+//
+// If a model prefix does NOT match any of the above → return null
+// (caller then reports "model not recognized" / error, per docx note).
+// ─────────────────────────────────────────────────────────────────
+
+// Each rule maps a model prefix to its capacity position and optional
+// leading-"1" position. We MATCH BY LONGEST PREFIX FIRST (globally), so
+// e.g. "GMVM" (pos 8-9 per docx example GMVM960603=60/12=5T) wins over
+// "GMV" (pos 7-8), and "GME8" wins over "GME".
+//
+// Verified against docx examples:
+//   GMVM960603 → pos 8-9 "60" → 5.0T   (GMVM rule)
+//   GME950403  → pos 7-8 "40" → 3.5T   (GME rule)
+//   GKS90703   → pos 6-7 "70" → 5.8T   (GK rule)
+const GOODMAN_PREFIX_LIST = [
+  // 4-char / 8-suffix families (most specific) — checked first
+  { p:'GMVM', capPos:8, onePos:7 },   // per docx example → positions 8-9
+  { p:'GME8', capPos:6, onePos:5 },
+  { p:'GMH8', capPos:6, onePos:5 },
+  { p:'GMS8', capPos:6, onePos:5 },
+  { p:'GHS8', capPos:6, onePos:5 },
+  { p:'GDS8', capPos:6, onePos:5 },
+  // 3-char families → positions 7-8 (leading 1 at pos 6)
+  { p:'GME', capPos:7, onePos:6 },
+  { p:'GMH', capPos:7, onePos:6 },
+  { p:'GCH', capPos:7, onePos:6 },
+  { p:'GMV', capPos:7, onePos:6 },
+  { p:'CAP', capPos:7, onePos:6 },
+  { p:'CAU', capPos:7, onePos:6 },
+  { p:'CHP', capPos:7, onePos:6 },
+  { p:'CSC', capPos:7, onePos:6 },
+  // 2-char families → positions 8-9 (leading 1 at pos 7)
+  { p:'GL', capPos:8, onePos:7 },
+  { p:'DS', capPos:8, onePos:7 },
+  { p:'GM', capPos:8, onePos:7 },
+  { p:'GC', capPos:8, onePos:7 },
+  { p:'GR', capPos:8, onePos:7 },
+  // 2-char families → positions 7-8 (leading 1 at pos 6)
+  { p:'GX', capPos:7, onePos:6 },
+  { p:'GS', capPos:7, onePos:6 },
+  { p:'SS', capPos:7, onePos:6 },
+  // 2-char families → positions 6-7 (leading 1 at pos 5)
+  { p:'CH', capPos:6, onePos:5 },
+  { p:'GP', capPos:6, onePos:5 },
+  { p:'GK', capPos:6, onePos:5 },
+  { p:'GD', capPos:6, onePos:5 },
+  { p:'AV', capPos:6, onePos:5 },
+  // 2-char families → positions 5-6 (no leading-1 rule)
+  { p:'AM', capPos:5, onePos:null },
+  { p:'AS', capPos:5, onePos:null },
+  { p:'AR', capPos:5, onePos:null },
+  { p:'AW', capPos:5, onePos:null },
+  { p:'AC', capPos:5, onePos:null },
+].sort((a, b) => b.p.length - a.p.length);   // longest prefix first
+
+function extractTonsGoodmanColeman(model, brandLabel) {
   if (!model) return null;
   const m = model.trim().toUpperCase().replace(/[\s\-]/g, '');
-  const groups = [...m.matchAll(/\d{2,3}/g)];
-  for (const g of groups) {
-    const btuCode = parseInt(g[0].substring(0, 3), 10);
-    if (btuCode < 18) continue;
-    const tons = btuCode * 1000 / 12000;
-    const tonsRounded = Math.round(tons * 2) / 2;
+
+  // ── Special Goodman/Coleman model: MBVB (CFM at positions 5,6) ──
+  if (/^MBVB/.test(m) && m.length >= 6) {
+    const cfmCode = m.substring(4, 6);  // positions 5,6
+    if (/^\d{2}$/.test(cfmCode)) {
+      const cfm = parseInt(cfmCode, 10) * 100;   // 12→1200, 16→1600, 20→2000
+      if (cfm > 0) {
+        const tonsRaw = cfm / 400;               // 400 CFM = 1 ton
+        const tonsRounded = Math.round(tonsRaw * 2) / 2;
+        return {
+          tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
+          cfm,
+          codeUsed: cfmCode,
+          series: brandLabel + ' MBVB — Modular Blower (positions 5-6 = CFM ÷ 400)',
+          posUsed: 'positions 5-6',
+          isCFM: true
+        };
+      }
+    }
+  }
+
+  // ── Prefix-based capacity-position lookup (longest prefix wins) ──
+  for (const rule of GOODMAN_PREFIX_LIST) {
+    if (!m.startsWith(rule.p)) continue;
+
+    // Two-digit capacity code at the configured position (0-indexed = pos-1)
+    const start = rule.capPos - 1;
+    if (start + 2 > m.length) continue;
+    const twoDigit = m.substring(start, start + 2);
+    if (!/^\d{2}$/.test(twoDigit)) continue;
+
+    // Optional leading "1" at onePos → make it a 3-digit code (e.g. 100,115)
+    let codeStr = twoDigit;
+    if (rule.onePos !== null) {
+      const oneChar = m[rule.onePos - 1];   // 1-indexed → 0-indexed
+      if (oneChar === '1') codeStr = '1' + twoDigit;
+    }
+
+    const btuCode = parseInt(codeStr, 10);
+    if (isNaN(btuCode) || btuCode <= 0) continue;
+
+    const tonsRaw = btuCode / 12;
+    const tonsRounded = Math.round(tonsRaw * 2) / 2;
     if (tonsRounded < 0.5 || tonsRounded > 50) continue;
+
     return {
       tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
       btu: btuCode * 1000,
-      codeUsed: g[0].substring(0, 3),
-      series: 'Coleman — BTU code in model (York UPG)',
-      posUsed: null
+      codeUsed: codeStr,
+      series: brandLabel + ' — capacity code at model positions ' +
+              rule.capPos + '-' + (rule.capPos + 1) + ' ÷ 12',
+      posUsed: 'positions ' + rule.capPos + '-' + (rule.capPos + 1)
     };
   }
+
+  // No matching prefix → per docx, mark as not recognized (error)
   return null;
+}
+
+function extractTonsColeman(model) {
+  return extractTonsGoodmanColeman(model, 'Coleman');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2170,7 +2320,7 @@ function extractTonsColeman(model) {
 //   pos[0]=letter, pos[1]=digit, pos[2]=letter, pos[3]=digit
 //   Year = pos[1]+pos[3] combined as 2-digit year (e.g. "0"+"5"="05"=2005)
 //   Month = pos[2] letter (A=Jan…N=Dec, no I)
-//   Example: W0K5896070 → 0+5=05=2005, K=October → Oct 2005
+//   Example: W0K5896070 → 0+5=05=2005, K=September → Sep 2005
 //
 // Style 2 (1971–Oct 2004): [Plant letter][Month letter][Year letter][Type letter][6-digit seq]
 //   pos[0..3] = 4 letters
@@ -2192,8 +2342,10 @@ function extractTonsColeman(model) {
 // ═══════════════════════════════════════════════════════════════
 
 const COLEMAN_MONTH_LETTERS = {
-  A:1, B:2, C:3, D:4, E:5, F:6, G:7, H:8, J:9, K:10, L:11, M:12, N:12
-  // N=December per Style 2 chart
+  // Per official Coleman serial chart (Ultimas_marcas.docx images):
+  // A=Jan B=Feb C=Mar D=Apr E=May F=Jun G=Jul H=Aug
+  // K=Sep L=Oct M=Nov N=Dec  (no I, no J in the chart)
+  A:1, B:2, C:3, D:4, E:5, F:6, G:7, H:8, K:9, L:10, M:11, N:12
 };
 
 const COLEMAN_YEAR_LETTERS_S2 = {
@@ -2377,73 +2529,24 @@ function parseMitsubishiSerial(raw) {
 // ═══════════════════════════════════════════════════════════════
 // GOODMAN — TONNAGE EXTRACTOR (MODEL NUMBER)
 //
-// Find the first 2–3 digit BTU code (×1,000) in the model.
-// Same divisible-by-6 logic as other brands.
+// Per Ultimas_marcas.docx, Goodman uses prefix-dependent capacity
+// positions (shared with Coleman via extractTonsGoodmanColeman):
+//   GL/DS/GM/GC/GR → pos 8,9 (leading-1 at pos 7)
+//   GX/GS/SS/GME/GMH/GCH/GMV/CAP/CAU/CHP/CSC → pos 7,8 (leading-1 at pos 6)
+//   AM → pos 5,6
+//   CH/GP/GK/GME8/GMH8/GD/GMS8/GHS8/GDS8/AV → pos 6,7 (leading-1 at pos 5)
+//   AS/AR/AW/AC → pos 5,6
+//   MBVB (special) → pos 5,6 = CFM ÷ 400
+// The matched code ÷ 12 = tons. Unmatched prefixes → null (error).
 //
-// Examples:
-//   GSXB403610    → "036" → 3.0 tons
-//   CAPF4860C6DB  → "60"  → 5.0 tons  (embedded after "48")
-//   GSX140361AA   → "036" → 3.0 tons
-//   ARUF486016    → "48"  → 4.0 tons
-//
-// NOTE: In air-handler models with multiple digit groups the BTU code
-// is the first group ≥ 18 that produces a valid half-ton result.
 // 100% isolated. Only runs when brand === 'Goodman'.
 // ═══════════════════════════════════════════════════════════════
 
 function extractTonsGoodman(model) {
-  if (!model) return null;
-  const m = model.trim().toUpperCase().replace(/[\s\-]/g, '');
-
-  // ── Special case: Goodman coil models (CAPF, CHPF, AVPF…) ──
-  // In these models a 4-digit block like "4860" where the LAST 2 digits
-  // are the nominal BTU code (60=5T). Only applies to models starting with CAPF/CHPF/AVPF.
-  if (/^(CAPF|CHPF|AVPF|CAUF|CAPF)/.test(m)) {
-    const fourDigit = m.match(/\d{4}/);
-    if (fourDigit) {
-      const block   = fourDigit[0];
-      const lastTwo = parseInt(block.substring(2, 4), 10);
-      if (lastTwo >= 18 && lastTwo % 6 === 0) {
-        const tonsRounded = Math.round(lastTwo * 1000 / 12000 * 2) / 2;
-        if (tonsRounded >= 1 && tonsRounded <= 10) {
-          return {
-            tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
-            btu: lastTwo * 1000,
-            codeUsed: String(lastTwo).padStart(2, '0'),
-            series: 'Goodman air handler — BTU code (last 2 of 4-digit block)',
-            posUsed: null
-          };
-        }
-      }
-    }
-  }
-
-  // ── General: scan all digit groups for first valid BTU code ÷ 6 ──
-  const groups = [...m.matchAll(/\d{2,}/g)];
-  const candidates = [];
-  for (const g of groups) {
-    const raw = g[0];
-    for (let start = 0; start < raw.length; start++) {
-      for (const len of [3, 2]) {
-        if (start + len > raw.length) continue;
-        const btuCode = parseInt(raw.substring(start, start + len), 10);
-        if (btuCode < 18 || btuCode % 6 !== 0) continue;
-        const tonsRounded = Math.round(btuCode * 1000 / 12000 * 2) / 2;
-        if (tonsRounded < 1 || tonsRounded > 10) continue;
-        candidates.push({ btuCode, tonsRounded, code: raw.substring(start, start + len), pos: g.index + start });
-      }
-    }
-  }
-  if (candidates.length === 0) return null;
-  candidates.sort((a, b) => a.pos - b.pos || b.code.length - a.code.length);
-  const best = candidates[0];
-  return {
-    tons: String(best.tonsRounded % 1 === 0 ? best.tonsRounded.toFixed(1) : best.tonsRounded),
-    btu: best.btuCode * 1000,
-    codeUsed: best.code,
-    series: 'Goodman — BTU code in model (÷6)',
-    posUsed: null
-  };
+  const r = extractTonsGoodmanColeman(model, 'Goodman');
+  // Re-label series so it reads "Goodman …" (helper already passes brandLabel,
+  // so this is just a passthrough kept for clarity / future tweaks).
+  return r;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2512,6 +2615,32 @@ function parseGoodmanSerial(raw) {
 function extractTonsLennox(model) {
   if (!model) return null;
   const m = model.trim().toUpperCase().replace(/[\s\-]/g, '');
+
+  // ─────────────────────────────────────────────────────────────
+  // Lennox HS model (High Side Air Conditioner) — per Ultimas_marcas.docx
+  // Format: HS [Series 2-digit] [3-digit Nominal Cooling Capacity] ...
+  //   e.g. HS29-036-3P → strip → "HS290363P" → positions 5-6-7 = "036"
+  // The 3-digit capacity code (positions 5,6,7) ÷ 12 = tons.
+  //   012=1T · 018=1.5T · 024=2T · 030=2.5T · 036=3T
+  //   042=3.5T · 048=4T · 060=5T · 062=5+T
+  // ─────────────────────────────────────────────────────────────
+  if (/^HS/.test(m) && m.length >= 7) {
+    const codeStr = m.substring(4, 7);   // positions 5-6-7 (0-indexed 4-6)
+    if (/^\d{3}$/.test(codeStr)) {
+      const btuCode = parseInt(codeStr, 10);
+      if (btuCode > 0) {
+        const tonsRaw = btuCode / 12;
+        const tonsRounded = Math.round(tonsRaw * 2) / 2; // nearest 0.5
+        return {
+          tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
+          btu: btuCode * 1000,
+          codeUsed: codeStr,
+          series: 'Lennox HS — High Side Air Conditioner (positions 5-6-7 ÷ 12)',
+          posUsed: 'positions 5-7'
+        };
+      }
+    }
+  }
 
   // ─────────────────────────────────────────────────────────────
   // Lennox CX model (per Nuevos_modelos.docx)
@@ -2635,6 +2764,629 @@ function parseLennoxSerial(raw) {
   };
 }
 
+// ═══════════════════════════════════════════════════════════════
+// CLIMATE MASTER — TONNAGE EXTRACTOR (MODEL NUMBER)
+//
+// Per Ultimas_marcas.docx: use digits at model positions 4,5,6 ÷ 12.
+// The 4th digit may be a number OR a 0 — if it's 0, use only digits 5,6.
+// (In practice: read the 3-char block at positions 4-5-6; parseInt drops
+//  a leading 0 automatically, so "060"→60 and "036"→36 both work.)
+//   e.g. TT036 ... → "036" → 36/12 = 3 tons
+// ═══════════════════════════════════════════════════════════════
+function extractTonsClimateMaster(model) {
+  if (!model) return null;
+  const m = model.trim().toUpperCase().replace(/[\s\-]/g, '');
+  if (m.length < 6) return null;
+
+  const block = m.substring(3, 6);   // positions 4-5-6 (0-indexed 3-5)
+  if (!/^\d{3}$/.test(block)) {
+    // Fallback: first 2-3 digit group in the model
+    const g = m.match(/\d{2,3}/);
+    if (!g) return null;
+    const code = parseInt(g[0], 10);
+    if (!code) return null;
+    const t = Math.round(code / 12 * 4) / 4;  // nearest 0.25 ton
+    if (t < 0.25 || t > 50) return null;
+    return {
+      tons: String(t % 1 === 0 ? t.toFixed(1) : t),
+      btu: code * 1000, codeUsed: g[0],
+      series: 'Climate Master — capacity code in model ÷ 12', posUsed: null
+    };
+  }
+
+  const code = parseInt(block, 10);  // "060"→60, "036"→36 (leading-0 dropped)
+  if (!code) return null;
+  const tonsRounded = Math.round(code / 12 * 4) / 4;  // nearest 0.25 ton
+  if (tonsRounded < 0.25 || tonsRounded > 50) return null;
+  return {
+    tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
+    btu: code * 1000,
+    codeUsed: block,
+    series: 'Climate Master — positions 4-5-6 ÷ 12',
+    posUsed: 'positions 4-6'
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CLIMATE MASTER — SERIAL NUMBER → MANUFACTURE DATE
+//
+// Style 1 (serial starts with a LETTER):
+//   pos 1 = year letter (table) · pos 2-3 = week of manufacture
+//   Year letters (per official chart):
+//     H=1998 A=1999 B=2000 C=2001 D=2002 E=2003 F=2004 G=2005
+//     J=2006 K=2007 L=2008 M=2009 N=2010 P=2011 Q=2012 R=2013
+//     S=2014 T=2015 U=2016 V=2017
+//   Example: K111300076 → K=2007, week 11 → ~March 2007
+//
+// Style 2 (serial starts with a NUMBER):
+//   pos 1-2 = 2-digit year · pos 3 = month letter (table)
+//   Month letters: A=Jan B=Feb C=Mar D=Apr E=May F=Jun
+//                  G=Jul H=Aug J=Sep K=Oct L=Nov M=Dec
+//   Example: 92J010915 → year 1992, J=September → September 1992
+// ═══════════════════════════════════════════════════════════════
+const CLIMATEMASTER_YEAR_LETTERS = {
+  H:1998, A:1999, B:2000, C:2001, D:2002, E:2003, F:2004, G:2005,
+  J:2006, K:2007, L:2008, M:2009, N:2010, P:2011, Q:2012, R:2013,
+  S:2014, T:2015, U:2016, V:2017
+};
+const CLIMATEMASTER_MONTH_LETTERS = {
+  A:1, B:2, C:3, D:4, E:5, F:6, G:7, H:8, J:9, K:10, L:11, M:12
+};
+
+function parseClimateMasterSerial(raw) {
+  const s = raw.trim().toUpperCase().replace(/\s+/g, '');
+  if (s.length < 3) return null;
+
+  // ── Style 1: starts with a year letter ──
+  if (/^[A-Z]/.test(s) && CLIMATEMASTER_YEAR_LETTERS[s[0]] !== undefined) {
+    const year = CLIMATEMASTER_YEAR_LETTERS[s[0]];
+    const weekStr = s.substring(1, 3);
+    if (/^\d{2}$/.test(weekStr)) {
+      const week = parseInt(weekStr, 10);
+      if (week >= 1 && week <= 53) {
+        return {
+          year, week, month: weekToMonth(week),
+          style: 'Style 1 — year letter · week (positions 2-3)',
+          ambiguous: false
+        };
+      }
+    }
+  }
+
+  // ── Style 2: starts with a number ──
+  if (/^\d{2}[A-Z]/.test(s)) {
+    const yr2 = parseInt(s.substring(0, 2), 10);
+    const monthChar = s[2];
+    const month = CLIMATEMASTER_MONTH_LETTERS[monthChar];
+    if (month) {
+      const year = yr2 <= 30 ? 2000 + yr2 : 1900 + yr2;
+      if (year >= 1980 && year <= 2040) {
+        return {
+          year, month,
+          style: 'Style 2 — 2-digit year · month letter',
+          ambiguous: false
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DAIKIN  &  INTERNATIONAL COMFORT PRODUCTS (ICP) — TONNAGE
+//
+// Per Ultimas_marcas.docx (same model logic for both brands):
+//   The model starts with letters; find where the FIRST digit appears.
+//   - If the first digit is 0 → low-tonnage unit: take that 0 plus the
+//     NEXT digit (2-digit code).
+//   - Otherwise → take that digit plus the next one. BUT if the 3rd digit
+//     (the one after the 2-digit code) is a 0, include it too (3-digit code).
+//   That code ÷ 12 = tons.
+//
+//   Examples (Daikin):
+//     RX24NMVJU       → "24"  → 2.0 T
+//     DBG1503VH00001  → "150" → 12.5 T  (third digit is 0 → 3-digit code)
+//     FXMQ09PBVJU     → "09"  → 0.75 T
+//
+// Daikin special exception:
+//   Model starting with "DZ" → use digits at positions 8,9 ÷ 12.
+//     DZ17VSA301BA → positions 8-9 = "30" → 2.5 T
+// ═══════════════════════════════════════════════════════════════
+function extractTonsDaikinICP(model, brandLabel) {
+  if (!model) return null;
+  const m = model.trim().toUpperCase().replace(/[\s\-]/g, '');
+
+  // ── Daikin DZ exception: positions 8,9 ÷ 12 ──
+  if (brandLabel === 'Daikin' && /^DZ/.test(m) && m.length >= 9) {
+    const code = m.substring(7, 9);   // positions 8-9 (0-indexed 7-8)
+    if (/^\d{2}$/.test(code)) {
+      const n = parseInt(code, 10);
+      const t = Math.round(n / 12 * 4) / 4;  // nearest 0.25 ton
+      if (t >= 0.25 && t <= 50) {
+        return {
+          tons: String(t % 1 === 0 ? t.toFixed(1) : t),
+          btu: n * 1000, codeUsed: code,
+          series: 'Daikin DZ — positions 8-9 ÷ 12', posUsed: 'positions 8-9'
+        };
+      }
+    }
+  }
+
+  // ── General: locate the first digit after the leading letters ──
+  const firstDigitIdx = m.search(/\d/);
+  if (firstDigitIdx < 0) return null;
+
+  let codeStr;
+  const d1 = m[firstDigitIdx];
+  if (d1 === '0') {
+    // Low-tonnage: take the 0 and the next digit (2-digit code)
+    if (firstDigitIdx + 2 > m.length) return null;
+    codeStr = m.substring(firstDigitIdx, firstDigitIdx + 2);
+  } else {
+    // Take this digit + the next one (2-digit code)
+    if (firstDigitIdx + 2 > m.length) return null;
+    codeStr = m.substring(firstDigitIdx, firstDigitIdx + 2);
+    // If the third digit is a 0, include it (3-digit code) e.g. 150
+    const third = m[firstDigitIdx + 2];
+    if (third === '0') codeStr = m.substring(firstDigitIdx, firstDigitIdx + 3);
+  }
+
+  if (!/^\d{2,3}$/.test(codeStr)) return null;
+  const n = parseInt(codeStr, 10);
+  if (!n) return null;
+  const tonsRounded = Math.round(n / 12 * 4) / 4;  // nearest 0.25 ton (e.g. 09/12=0.75)
+  if (tonsRounded < 0.25 || tonsRounded > 60) return null;
+  return {
+    tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
+    btu: n * 1000,
+    codeUsed: codeStr,
+    series: brandLabel + ' — first numeric group after letters ÷ 12',
+    posUsed: null
+  };
+}
+function extractTonsDaikin(model) { return extractTonsDaikinICP(model, 'Daikin'); }
+function extractTonsICP(model)    { return extractTonsDaikinICP(model, 'International Comfort Products'); }
+
+// ═══════════════════════════════════════════════════════════════
+// INTERNATIONAL COMFORT PRODUCTS (ICP / COMFORTMAKER) — SERIAL
+//
+// Per Ultimas_marcas.docx (one style only):
+//   Serial starts with a letter, then digits 2-3 = year, digits 4-5 = week.
+//   Example: E072514528 → year 07=2007, week 25 → ~late June 2007
+// ═══════════════════════════════════════════════════════════════
+function parseICPSerial(raw) {
+  const s = raw.trim().toUpperCase().replace(/\s+/g, '');
+  if (s.length < 5) return null;
+  if (!/^[A-Z]\d{4}/.test(s)) return null;   // letter + at least 4 digits
+  const yr2  = parseInt(s.substring(1, 3), 10);
+  const week = parseInt(s.substring(3, 5), 10);
+  if (week < 1 || week > 53) return null;
+  const year = yr2 <= 30 ? 2000 + yr2 : 1900 + yr2;
+  if (year < 1980 || year > 2040) return null;
+  return {
+    year, week, month: weekToMonth(week),
+    style: 'Style 1 — letter + 2-digit year (pos 2-3) + 2-digit week (pos 4-5)',
+    ambiguous: false
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AAON — SERIAL NUMBER → MANUFACTURE DATE
+//
+// Style 1: first 6 chars are digits, 7th char is a letter.
+//   digits 1-4 = full year · digits 5-6 = month (01-12)
+//   Example: 200108AKG26241 → year 2001, month 08 → August 2001
+//
+// Style 2: 3rd char is a month letter (A-M, no I).
+//   digits 1-2 = 2-digit year · char 3 = month letter
+//   Month: A=Jan B=Feb C=Mar D=Apr E=May F=Jun G=Jul H=Aug
+//          J=Sep K=Oct L=Nov M=Dec
+//   Example: 97JKGK153 → year 1997, J=September → September 1997
+// ═══════════════════════════════════════════════════════════════
+const AAON_MONTH_LETTERS = {
+  A:1, B:2, C:3, D:4, E:5, F:6, G:7, H:8, J:9, K:10, L:11, M:12
+};
+function parseAAONSerial(raw) {
+  const s = raw.trim().toUpperCase().replace(/\s+/g, '');
+  if (s.length < 3) return null;
+  const NOW_YR4 = new Date().getFullYear();
+  const NOW_YR2 = NOW_YR4 - 2000;
+
+  // ── Style 1: 6 leading digits + a letter in position 7 ──
+  if (/^\d{6}[A-Z]/.test(s)) {
+    const year  = parseInt(s.substring(0, 4), 10);
+    const month = parseInt(s.substring(4, 6), 10);
+    if (month >= 1 && month <= 12 && year >= 1980 && year <= NOW_YR4) {
+      return {
+        year, month,
+        style: 'Style 1 — YYYY (pos 1-4) · MM (pos 5-6)',
+        ambiguous: false
+      };
+    }
+  }
+
+  // ── Style 2: 2 digits + month letter ──
+  if (/^\d{2}[A-Z]/.test(s)) {
+    const yr2   = parseInt(s.substring(0, 2), 10);
+    const month = AAON_MONTH_LETTERS[s[2]];
+    if (month) {
+      const year = yr2 <= NOW_YR2 ? 2000 + yr2 : 1900 + yr2;
+      if (year >= 1980 && year <= NOW_YR4) {
+        return {
+          year, month,
+          style: 'Style 2 — 2-digit year (pos 1-2) · month letter (pos 3)',
+          ambiguous: false
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AAON — TONNAGE EXTRACTOR (MODEL NUMBER)
+//
+// Per Ultimas_marcas.docx. The model always starts with a 2-3 letter
+// prefix that identifies the unit family. The prefix determines:
+//   (a) the unit type (shown as a small note),
+//   (b) the min/max tons (out-of-range → error),
+//   (c) HOW the capacity is read:
+//        DIRECT  — the 3-digit size code IS the tons (e.g. RN-025 → 25T)
+//        DIV12   — the 3-digit size code is BTU/MBH; ÷ 12 = tons
+//        CFM_LETTER — a letter at position 3 maps to CFM; ÷ 400 = tons
+//        CFM_M2  — size code ×200 (low) and ×550 (high), each ÷400 → range
+//        CFM_H2  — fixed CFM range by 3rd char; each ÷400 → range
+//
+// Size code position: most families place the 3-digit size right after
+// the prefix, but a few (RZ, CF, SA, LF, CB...) carry a 1-char major-
+// revision letter between the prefix and the size. We handle both by
+// scanning for the first 3-digit group after the prefix.
+// ═══════════════════════════════════════════════════════════════
+
+// Direct-tons families (size code read directly as tons)
+const AAON_DIRECT = {
+  RN:[6,140,'Rooftop unit'], RNA:[6,140,'RN-series rooftop unit'],
+  RQ:[2,6,'Rooftop unit'],   RZ:[55,261,'Rooftop unit'],
+  RM:[2,30,'Rooftop unit (obsolete)'], RL:[45,230,'Rooftop unit (obsolete)'],
+  RK:[2,60,'Rooftop unit (obsolete)'], RH:[2,60,'Rooftop unit (obsolete)'],
+  RG:[3,24,'Rooftop unit (obsolete)'], RF:[40,130,'Rooftop unit (obsolete)'],
+  RE:[2,63,'Rooftop unit (obsolete)'],
+  HB:[2,5,'Rooftop unit (obsolete)'], HA:[4,50,'Rooftop unit (obsolete)'],
+  CF:[2,70,'Condensing unit'], CA:[2,25,'Condensing unit (obsolete)'],
+  CC:[6,60,'Condensing unit (obsolete)'], CL:[45,230,'Condensing unit (obsolete)'],
+  CN:[55,140,'Condensing unit (obsolete)'],
+  SA:[23,70,'Vertical self-contained unit'], SB:[3,18,'Vertical self-contained unit'],
+  LZ:[45,540,'Chiller unit (obsolete)'], LL:[35,365,'Chiller unit (obsolete)'],
+  LN:[45,140,'Chiller unit (obsolete)'], LF:[4,55,'Air-cooled chiller (obsolete)'],
+  LC:[5,54,'Chiller unit (obsolete)']
+};
+// Divide-by-12 families (size code is BTU/MBH)
+const AAON_DIV12 = {
+  CB:[2,5,'Condensing unit (obsolete)'],
+  F1:[2,5,'Indoor air handling unit, multi-position (obsolete)'],
+  WH:[0.5,20,'Small packaged water-source heat pump, horizontal (obsolete)'],
+  WV:[0.5,30,'Small packaged water-source heat pump, vertical (obsolete)']
+};
+// CFM-by-letter families: 3rd char letter → CFM; ÷400 = tons
+const AAON_CFM_LETTER = {
+  H3:'Indoor air handling unit, horizontal',
+  V3:'Indoor air handling unit, vertical'
+};
+const AAON_CFM_LETTER_MAP = { A:1200, B:2000, C:4000, D:6000, E:10000 };
+// M-series: size code ×200 (low) / ×550 (high), each ÷400 → tons range
+const AAON_CFM_M = {
+  M2:'Modular air handling unit / packaged WSHP',
+  M1:'Modular air handling unit (obsolete)',
+  M3:'Modular air handling unit (obsolete)'
+};
+// H2/V2: fixed CFM range by 3rd char (A,B,C,C+,D); each ÷400 → tons range
+const AAON_H2_RANGES = {
+  A:[800,1200], B:[1200,2000], C:[2000,4000], 'C+':[4000,6000], D:[6000,10000]
+};
+
+function _aaonFmt(t) {
+  return String(t % 1 === 0 ? t.toFixed(1) : (Math.round(t * 100) / 100));
+}
+
+function extractTonsAAON(model) {
+  if (!model) return null;
+  const m = model.trim().toUpperCase().replace(/[\s\-]/g, '');
+
+  // Helper to grab the first 3-digit group after a given prefix length,
+  // allowing an optional 1-char (revision) letter in between.
+  const firstSizeCode = (prefixLen) => {
+    const rest = m.substring(prefixLen);
+    const mt = rest.match(/\d{3}/);
+    return mt ? mt[0] : null;
+  };
+
+  // Sort prefixes longest-first so RNA matches before RN, etc.
+  const tryPrefixes = (obj) => Object.keys(obj).sort((a, b) => b.length - a.length);
+
+  // ── DIRECT families ──
+  for (const p of tryPrefixes(AAON_DIRECT)) {
+    if (!m.startsWith(p)) continue;
+    const code = firstSizeCode(p.length);
+    if (!code) return null;
+    const tons = parseInt(code, 10);
+    const [minT, maxT, type] = AAON_DIRECT[p];
+    if (tons < minT || tons > maxT) {
+      return { tons: null, series: 'AAON ' + p + ' — ' + type, codeUsed: code,
+               notInTable: true, aaonOutOfRange: true, aaonMin: minT, aaonMax: maxT };
+    }
+    return {
+      tons: _aaonFmt(tons), btu: tons * 12000, codeUsed: code,
+      series: 'AAON ' + p + ' — ' + type + ' (size read directly)',
+      unitType: type, posUsed: null
+    };
+  }
+
+  // ── DIV12 families ──
+  for (const p of tryPrefixes(AAON_DIV12)) {
+    if (!m.startsWith(p)) continue;
+    const code = firstSizeCode(p.length);
+    if (!code) return null;
+    const n = parseInt(code, 10);
+    const tons = Math.round(n / 12 * 2) / 2;
+    const [minT, maxT, type] = AAON_DIV12[p];
+    if (tons < minT || tons > maxT) {
+      return { tons: null, series: 'AAON ' + p + ' — ' + type, codeUsed: code,
+               notInTable: true, aaonOutOfRange: true, aaonMin: minT, aaonMax: maxT };
+    }
+    return {
+      tons: _aaonFmt(tons), btu: n * 1000, codeUsed: code,
+      series: 'AAON ' + p + ' — ' + type + ' (BTU/MBH ÷ 12)',
+      unitType: type, posUsed: null
+    };
+  }
+
+  // ── CFM-by-letter families (H3 / V3) ──
+  for (const p of tryPrefixes(AAON_CFM_LETTER)) {
+    if (!m.startsWith(p)) continue;
+    // 3rd character of the model is the unit-size letter
+    const letter = m[2];
+    const cfm = AAON_CFM_LETTER_MAP[letter];
+    const type = AAON_CFM_LETTER[p];
+    if (!cfm) {
+      return { tons: null, series: 'AAON ' + p + ' — ' + type, codeUsed: letter || '?',
+               notInTable: true };
+    }
+    const tons = Math.round(cfm / 400 * 2) / 2;
+    return {
+      tons: _aaonFmt(tons), cfm, codeUsed: letter,
+      series: 'AAON ' + p + ' — ' + type + ' (size letter ' + letter + ' = ' + cfm + ' CFM ÷ 400)',
+      unitType: type, isCFM: true,
+      aaonNote: 'Capacity for this air-handling model is airflow-based (CFM); tonnage is derived as CFM ÷ 400.',
+      posUsed: null
+    };
+  }
+
+  // ── M-series (M2 / M1 / M3) → tons RANGE via ×200 / ×550 ÷ 400 ──
+  for (const p of tryPrefixes(AAON_CFM_M)) {
+    if (!m.startsWith(p)) continue;
+    const code = firstSizeCode(p.length);
+    if (!code) return null;
+    const sz = parseInt(code, 10);
+    const type = AAON_CFM_M[p];
+    const cfmLow  = sz * 200;
+    const cfmHigh = sz * 550;
+    const tLow  = Math.round(cfmLow  / 400 * 100) / 100;
+    const tHigh = Math.round(cfmHigh / 400 * 100) / 100;
+    return {
+      tonsRange: [tLow, tHigh],
+      tons: _aaonFmt(tLow) + ' – ' + _aaonFmt(tHigh),
+      cfmRange: [cfmLow, cfmHigh], codeUsed: code,
+      series: 'AAON ' + p + ' — ' + type + ' (size ×200 / ×550, each ÷ 400 = tons range)',
+      unitType: type, isCFM: true, isRange: true,
+      aaonNote: 'This modular air-handling model has no single nominal tonnage. Capacity is sized by airflow (CFM), so the result is a range: size code ×200 ÷400 (low) to size code ×550 ÷400 (high).',
+      posUsed: null
+    };
+  }
+
+  // ── H2 / V2 → fixed CFM range by 3rd char (incl. "C+") ──
+  if (/^(H2|V2)/.test(m)) {
+    const type = m.startsWith('H2')
+      ? 'Indoor air handling unit, horizontal (obsolete)'
+      : 'Indoor air handling unit, vertical (obsolete)';
+    // 3rd char, with optional trailing '+' (e.g. H2C+ )
+    let key = m[2] || '';
+    if (m[3] === '+') key = key + '+';
+    const range = AAON_H2_RANGES[key];
+    if (!range) {
+      return { tons: null, series: 'AAON ' + m.substring(0,2) + ' — ' + type,
+               codeUsed: key || '?', notInTable: true };
+    }
+    const tLow  = Math.round(range[0] / 400 * 100) / 100;
+    const tHigh = Math.round(range[1] / 400 * 100) / 100;
+    return {
+      tonsRange: [tLow, tHigh],
+      tons: _aaonFmt(tLow) + ' – ' + _aaonFmt(tHigh),
+      cfmRange: range, codeUsed: key,
+      series: 'AAON ' + m.substring(0,2) + key + ' — ' + type + ' (CFM range ÷ 400)',
+      unitType: type, isCFM: true, isRange: true,
+      aaonNote: 'This air-handling model has no single nominal tonnage. Capacity is rated by airflow section (CFM), giving a range: ' + range[0] + '–' + range[1] + ' CFM, each ÷400 = tons.',
+      posUsed: null
+    };
+  }
+
+  // No recognized AAON prefix → error (per docx note)
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DAIKIN — SERIAL NUMBER → MANUFACTURE DATE  (per Ultimas_marcas.docx)
+//
+// Daikin (and Daikin-McQuay) use SEVEN distinct serial styles. We detect
+// them by character pattern. Order matters — the most distinctive
+// patterns are tested first to avoid mis-matching.
+//
+// Month-letter table (shared, A–M skipping I):
+//   A=Jan B=Feb C=Mar D=Apr E=May F=Jun G=Jul H=Aug J=Sep K=Oct L=Nov M=Dec
+//
+// Style 1 — 3-4 leading LETTERS then digits (e.g. FBOU0905048200)
+//   Date in digits 5-8: pos 5-6 = year (09→2009), pos 7-8 = month (01-12)
+//
+// Style 2 — Daikin-McQuay Ductless: starts with year-code 2043-2069+
+//   (e.g. 20444501000138). pos 1-4 = year code via table: 2043=2000,
+//   2044=2001 … (year = code − 43). pos 6 = week → month.
+//
+// Style 3 — Number/Number/Letter, 2nd digit 5-9 (e.g. 55A1234501)
+//   1995-1999 only. pos 2 = year (5=1995…9=1999), pos 3 = month letter.
+//
+// Style 4 — Number/Letter/Letter (e.g. 5PB1234503), 1971-1994.
+//   pos 2 = year letter (A=1971…Z=1994), pos 3 = month letter.
+//
+// Style 5 — starts with R or H + 4 digits (e.g. R881212345)
+//   pos 2-3 = year (88→1988), pos 4-5 = week → month.
+//
+// Style 6 — 10 digits, then a LETTER at position 11 (e.g. 1230456789M151234)
+//   pos 11 = year letter (A=1974…R=1988, prior to 1988),
+//   pos 12-13 = week → month.
+//
+// Style 7 — ALL digits (e.g. 1602393269)
+//   pos 1-2 = year (16→2016), pos 3-4 = month (01-12).
+// ═══════════════════════════════════════════════════════════════
+const DAIKIN_MONTH_LETTERS = {
+  A:1, B:2, C:3, D:4, E:5, F:6, G:7, H:8, J:9, K:10, L:11, M:12
+};
+// Style 4 year letters: A=1971 … Z=1994 (skip I, O — not in chart)
+const DAIKIN_S4_YEAR_LETTERS = {
+  A:1971, B:1972, C:1973, D:1974, E:1975, F:1976, G:1977, H:1978, J:1979,
+  K:1980, L:1981, M:1982, N:1983, P:1984, Q:1985, R:1986, S:1987, T:1988,
+  U:1989, V:1990, W:1991, X:1992, Y:1993, Z:1994
+};
+// Style 6 year letters: A=1974 … R=1988 (condensing units prior to 1988)
+const DAIKIN_S6_YEAR_LETTERS = {
+  A:1974, B:1975, C:1976, D:1977, E:1978, F:1979, G:1980, H:1981,
+  J:1982, K:1983, L:1984, M:1985, N:1986, P:1987, R:1988
+};
+
+function parseDaikinSerial(raw) {
+  const s = raw.trim().toUpperCase().replace(/\s+/g, '');
+  if (s.length < 4) return null;
+  const NOW_YR4 = new Date().getFullYear();
+  const NOW_YR2 = NOW_YR4 - 2000;
+
+  // ── Style 5: R or H + 4 digits (pos 2-3 year, pos 4-5 week) ──
+  if (/^[RH]\d{4}/.test(s)) {
+    const yr2  = parseInt(s.substring(1, 3), 10);
+    const week = parseInt(s.substring(3, 5), 10);
+    if (week >= 1 && week <= 53) {
+      const year = yr2 <= NOW_YR2 ? 2000 + yr2 : 1900 + yr2;
+      if (year >= 1980 && year <= NOW_YR4) {
+        return {
+          year, week, month: weekToMonth(week),
+          style: 'Style 5 — R/H plant + year (pos 2-3) + week (pos 4-5)',
+          ambiguous: false
+        };
+      }
+    }
+  }
+
+  // ── Style 3: Number/Number/Letter, 2nd digit 5-9 (1995-1999) ──
+  if (/^\d[5-9][A-Z]/.test(s)) {
+    const yDigit = parseInt(s[1], 10);             // 5..9
+    const month  = DAIKIN_MONTH_LETTERS[s[2]];
+    if (month) {
+      const year = 1990 + yDigit;                  // 5→1995 … 9→1999
+      return {
+        year, month,
+        style: 'Style 3 — year digit (pos 2) + month letter (pos 3), 1995-1999',
+        ambiguous: false
+      };
+    }
+  }
+
+  // ── Style 4: Number/Letter/Letter (1971-1994) ──
+  if (/^\d[A-Z][A-Z]/.test(s)) {
+    const year  = DAIKIN_S4_YEAR_LETTERS[s[1]];
+    const month = DAIKIN_MONTH_LETTERS[s[2]];
+    if (year && month) {
+      return {
+        year, month,
+        style: 'Style 4 — year letter (pos 2) + month letter (pos 3), 1971-1994',
+        ambiguous: false
+      };
+    }
+  }
+
+  // ── Style 1: 3-4 leading letters then digits (date in digits 5-8) ──
+  // Detect: starts with 3+ letters, and positions 5-8 are digits.
+  if (/^[A-Z]{3,5}/.test(s) && s.length >= 8) {
+    const lead = s.match(/^[A-Z]+/)[0].length;
+    // The sample FBOU0905048200 has 4 leading letters; date is fixed at
+    // serial positions 5-8 (1-indexed) regardless, per the image.
+    const yrStr  = s.substring(4, 6);   // positions 5-6
+    const moStr  = s.substring(6, 8);   // positions 7-8
+    if (/^\d{2}$/.test(yrStr) && /^\d{2}$/.test(moStr)) {
+      const yr2   = parseInt(yrStr, 10);
+      const month = parseInt(moStr, 10);
+      if (month >= 1 && month <= 12 && lead >= 3) {
+        const year = yr2 <= NOW_YR2 ? 2000 + yr2 : 1900 + yr2;
+        if (year >= 1980 && year <= NOW_YR4) {
+          return {
+            year, month,
+            style: 'Style 1 — leading letters; year (pos 5-6) + month (pos 7-8)',
+            ambiguous: false
+          };
+        }
+      }
+    }
+  }
+
+  // ── Style 6: 10 digits + letter at position 11 + 2-digit week ──
+  if (/^\d{10}[A-Z]\d{2}/.test(s)) {
+    const yearLetter = s[10];                       // 11th char (0-indexed 10)
+    const week = parseInt(s.substring(11, 13), 10); // 12th-13th
+    const year = DAIKIN_S6_YEAR_LETTERS[yearLetter];
+    if (year && week >= 1 && week <= 53) {
+      return {
+        year, week, month: weekToMonth(week),
+        style: 'Style 6 — year letter (pos 11) + week (pos 12-13), pre-1988',
+        ambiguous: false
+      };
+    }
+  }
+
+  // ── Style 2: Daikin-McQuay Ductless — year code 2043-2069+ ──
+  // pos 1-4 = year code (year = code − 43); pos 6 = week → month.
+  if (/^\d{6}/.test(s)) {
+    const code4 = parseInt(s.substring(0, 4), 10);
+    if (code4 >= 2043) {
+      const year = code4 - 43;                      // 2043→2000 … 2069→2026
+      if (year >= 2000 && year <= NOW_YR4) {
+        const wk = parseInt(s[5], 10);              // pos 6 = week (single digit)
+        const week = (wk >= 1 && wk <= 53) ? wk : 1;
+        return {
+          year, week, month: weekToMonth(week),
+          style: 'Style 2 — McQuay ductless: year code (pos 1-4, −43) + week (pos 6)',
+          ambiguous: false
+        };
+      }
+    }
+  }
+
+  // ── Style 7: all digits — pos 1-2 year, pos 3-4 month ──
+  if (/^\d{4}/.test(s) && /^\d+$/.test(s)) {
+    const yr2   = parseInt(s.substring(0, 2), 10);
+    const month = parseInt(s.substring(2, 4), 10);
+    if (month >= 1 && month <= 12) {
+      const year = yr2 <= NOW_YR2 ? 2000 + yr2 : 1900 + yr2;
+      if (year >= 1980 && year <= NOW_YR4) {
+        return {
+          year, month,
+          style: 'Style 7 — all digits: year (pos 1-2) + month (pos 3-4)',
+          ambiguous: false
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
 // ── Brand router: calls the correct parser based on selected brand ──
 function parseSerial(brand, raw) {
   switch (brand) {
@@ -2651,6 +3403,10 @@ function parseSerial(brand, raw) {
     case 'Coleman':          return parseColemanSerial(raw);
     case 'Mitsubishi Electric':       return parseMitsubishiSerial(raw);
     case 'Goodman':          return parseGoodmanSerial(raw);
+    case 'Climate Master':   return parseClimateMasterSerial(raw);
+    case 'International Comfort Products': return parseICPSerial(raw);
+    case 'AAON':             return parseAAONSerial(raw);
+    case 'Daikin':           return parseDaikinSerial(raw);
     default:        return null;
   }
 }
@@ -2924,6 +3680,14 @@ function checkHVAC() {
       tonsResult = extractTonsMitsubishi(model);
     else if (brand === 'Goodman')
       tonsResult = extractTonsGoodman(model);
+    else if (brand === 'Climate Master')
+      tonsResult = extractTonsClimateMaster(model);
+    else if (brand === 'Daikin')
+      tonsResult = extractTonsDaikin(model);
+    else if (brand === 'International Comfort Products')
+      tonsResult = extractTonsICP(model);
+    else if (brand === 'AAON')
+      tonsResult = extractTonsAAON(model);
   }
 
   const dateResult = serial ? parseSerial(brand, serial) : null;
@@ -2933,16 +3697,44 @@ function checkHVAC() {
   // ── Capacity card ──
   if (model) {
     if (tonsResult && tonsResult.tons) {
-      const btuDisplay = tonsResult.btu
-        ? tonsResult.btu.toLocaleString()
-        : (parseFloat(tonsResult.tons) * 12000).toLocaleString();
+      // Build the secondary note line: BTU/h, CFM, or range info
+      let noteLine;
+      if (tonsResult.isCFM && tonsResult.cfmRange) {
+        noteLine = tonsResult.cfmRange[0].toLocaleString() + '–' +
+                   tonsResult.cfmRange[1].toLocaleString() + ' CFM';
+      } else if (tonsResult.isCFM && tonsResult.cfm) {
+        noteLine = tonsResult.cfm.toLocaleString() + ' CFM';
+      } else {
+        const btuDisplay = tonsResult.btu
+          ? tonsResult.btu.toLocaleString()
+          : (parseFloat(tonsResult.tons) * 12000).toLocaleString();
+        noteLine = btuDisplay + ' BTU/h';
+      }
+      // Tons value font: shrink a bit for ranges so it fits
+      const valClass = tonsResult.isRange ? 'metric-value metric-value-sm' : 'metric-value';
+      // Optional small unit-type label (AAON) + optional explanatory note
+      const unitTypeLine = tonsResult.unitType
+        ? `<div class="metric-note" style="margin-top:2px;">${tonsResult.unitType}</div>`
+        : '';
+      const extraNote = tonsResult.aaonNote
+        ? `<div class="metric-note" style="margin-top:6px;font-style:italic;">${tonsResult.aaonNote}</div>`
+        : '';
       metricsHTML += `
         <div class="metric-box">
           <div class="metric-label">❄️ Capacity</div>
-          <div class="metric-value">${tonsResult.tons}
+          <div class="${valClass}">${tonsResult.tons}
             <span style="font-size:16px;font-family:'DM Sans',sans-serif;font-weight:500;"> Tons</span>
           </div>
-          <div class="metric-note">${btuDisplay} BTU/h</div>
+          <div class="metric-note">${noteLine}</div>
+          ${unitTypeLine}
+          ${extraNote}
+        </div>`;
+    } else if (tonsResult && tonsResult.aaonOutOfRange) {
+      // AAON: prefix recognized but the size code is outside the valid range
+      metricsHTML += `
+        <div class="metric-box">
+          <div class="metric-label">❄️ Capacity</div>
+          <div class="metric-na">Series recognized (<em>${tonsResult.series.split('—')[0].trim()}</em>) but the size code <strong>"${tonsResult.codeUsed}"</strong> is outside the valid range for this model (${tonsResult.aaonMin}–${tonsResult.aaonMax} tons). Verify the model number.</div>
         </div>`;
     } else if (tonsResult && tonsResult.notInTable) {
       metricsHTML += `
@@ -2959,7 +3751,19 @@ function checkHVAC() {
             ? 'Trane/AS models: look for the 3-digit BTU/MBh code (e.g. 4A7A4024L1000A → 024=2T, TTA090D3HR → 090=7.5T).'
             : (brand === 'Rheem' || brand === 'Ruud')
               ? 'Rheem/Ruud models: find the 2–3 digit BTU code after a letter (e.g. RGEDZT120ACG → 120=10T, UA16AZ24AJ3 → 24=2T).'
-              : 'This tool currently covers: 48TM, 48TJ, 48TC, 24ACC/SCA, 25HC, 38AK, 40RM.';
+              : brand === 'Climate Master'
+                ? 'Climate Master models: capacity comes from positions 4-5-6 ÷ 12 (e.g. ···036··· → 3T).'
+                : brand === 'Daikin'
+                  ? 'Daikin models: the first numeric group after the leading letters ÷ 12 = tons (e.g. RX24··· → 2T). DZ models use positions 8-9 ÷ 12.'
+                  : brand === 'International Comfort Products'
+                    ? 'ICP models: the first numeric group after the leading letters ÷ 12 = tons (e.g. RGS150··· → 12.5T).'
+                    : brand === 'AAON'
+                      ? 'AAON models start with a family prefix (RN, RQ, RZ, CF, H3, M2, H2…). Check the prefix and size code on the rating plate.'
+                      : brand === 'Coleman'
+                        ? 'Coleman models start with a Goodman-style prefix (GL, GX, AM, CH, AS…); capacity position depends on the prefix.'
+                        : brand === 'Goodman'
+                          ? 'Goodman models start with a family prefix (GL, GX, AM, CH, AS, MBVB…); capacity position depends on the prefix.'
+                          : 'This tool currently covers: 48TM, 48TJ, 48TC, 24ACC/SCA, 25HC, 38AK, 40RM.';
       metricsHTML += `
         <div class="metric-box">
           <div class="metric-label">❄️ Capacity</div>
@@ -2997,7 +3801,15 @@ function checkHVAC() {
               ? 'Rheem/Ruud serials: Letter + 2-digit week + 2-digit year + sequence (e.g. W291013412 → plant W, week 29, year 2010 = ~July 2010).'
               : brand === 'Mitsubishi Electric'
                 ? 'Mitsubishi serials: 1st digit=last digit of year · 2nd char=month (1–9=Jan–Sep, X=Oct, Y=Nov, Z=Dec). e.g. 89D00488D → year 2008/2018, month=September.'
-                : 'Carrier serials must start with 4 digits (WWYY). Double-check the number from the rating plate.';
+                : brand === 'Climate Master'
+                  ? 'Climate Master serials: Style 1 starts with a year letter + 2-digit week (e.g. K11··· → 2007, week 11). Style 2 starts with a 2-digit year + month letter (e.g. 92J··· → 1992, September).'
+                  : brand === 'International Comfort Products'
+                    ? 'ICP/Comfortmaker serials: letter + 2-digit year (pos 2-3) + 2-digit week (pos 4-5). e.g. E0725··· → year 2007, week 25.'
+                    : brand === 'AAON'
+                      ? 'AAON serials: Style 1 = 6 digits + a letter (YYYYMM…, e.g. 200108A → Aug 2001). Style 2 = 2-digit year + month letter (e.g. 97J··· → Sep 1997).'
+                      : brand === 'Daikin'
+                        ? 'Daikin serials use 7 styles: e.g. FBOU0905… (year pos 5-6, month pos 7-8), 1602393269 (year pos 1-2, month pos 3-4), R881212345 (R/H + year pos 2-3 + week pos 4-5), 55A… (1995-99), 5PB… (1971-94). Check the rating-plate serial.'
+                        : 'Carrier serials must start with 4 digits (WWYY). Double-check the number from the rating plate.';
       metricsHTML += `
         <div class="metric-box">
           <div class="metric-label">📅 Manufacture Date</div>
