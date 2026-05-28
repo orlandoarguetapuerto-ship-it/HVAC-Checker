@@ -2308,7 +2308,45 @@ function extractTonsGoodmanColeman(model, brandLabel) {
 }
 
 function extractTonsColeman(model) {
-  return extractTonsGoodmanColeman(model, 'Coleman');
+  // Per Ultimas_marcas.docx (Coleman section):
+  // The model starts with letters (2-5 chars); find where the FIRST digit appears.
+  //   - If the first digit is 0 → take that 0 + the NEXT digit (2-digit code, low-ton unit).
+  //   - Otherwise → take that digit + the next one. BUT if the 3rd digit is also 0,
+  //     include it too (3-digit code, e.g. CNPVP6024ALAAAAA → "60" then "2" → "602"? No:
+  //     first digit after letters is "6", next is "0", third is "2" ≠ 0 → code = "60").
+  //     Example: CNPVP6024 → first digit "6", next "0", third "2" ≠ 0 → code "60" → 60/12 = 5T ✓
+  //     Example with trailing 0: DBG1503VH → first digit "1", next "5", third "0" → code "150" → 12.5T
+  //   Code ÷ 12 = tons.
+  if (!model) return null;
+  const m = model.trim().toUpperCase().replace(/[\s\-]/g, '');
+
+  const firstDigitIdx = m.search(/\d/);
+  if (firstDigitIdx < 0) return null;
+
+  let codeStr;
+  const d1 = m[firstDigitIdx];
+  if (d1 === '0') {
+    if (firstDigitIdx + 2 > m.length) return null;
+    codeStr = m.substring(firstDigitIdx, firstDigitIdx + 2);
+  } else {
+    if (firstDigitIdx + 2 > m.length) return null;
+    codeStr = m.substring(firstDigitIdx, firstDigitIdx + 2);
+    const third = m[firstDigitIdx + 2];
+    if (third === '0') codeStr = m.substring(firstDigitIdx, firstDigitIdx + 3);
+  }
+
+  if (!/^\d{2,3}$/.test(codeStr)) return null;
+  const n = parseInt(codeStr, 10);
+  if (!n) return null;
+  const tonsRounded = Math.round(n / 12 * 4) / 4;
+  if (tonsRounded < 0.25 || tonsRounded > 60) return null;
+  return {
+    tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
+    btu: n * 1000,
+    codeUsed: codeStr,
+    series: 'Coleman — first numeric group after letters ÷ 12',
+    posUsed: null
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2393,31 +2431,43 @@ function parseColemanSerial(raw) {
     }
   }
 
-  // ── Styles 3 & 4: all digits ──
-  if (/^\d{8,}/.test(s)) {
-    const first2  = parseInt(s.substring(0, 2), 10);
-    const second2 = parseInt(s.substring(2, 4), 10);
+  // ── Styles 3, 4 & 4b: serial contains at least 4 leading digits (may have letters after) ──
+  // Per Ultimas_marcas.docx:
+  //   Primary attempt (YY·MM): pos 1-2 = year, pos 3-4 = month.
+  //     Valid if: year (pos1-2) ≤ current year AND month (pos3-4) is 01-12.
+  //   If invalid → invert (MM·YY): pos 1-2 = month, pos 3-4 = year.
+  //     Example: 0513X35360 → year=05→2005 ✓, month=13 ✗ → flip:
+  //       month=05=May, year=13→2013 → May 2013 ✓
+  // Extract the first 4 digit characters from the serial (skip any embedded letters)
+  const digits4 = s.replace(/[^0-9]/g, '').substring(0, 4);
+  if (digits4.length >= 4) {
+    const NOW_YR2 = new Date().getFullYear() - 2000;
+    const p12 = parseInt(digits4.substring(0, 2), 10);   // pos 1-2
+    const p34 = parseInt(digits4.substring(2, 4), 10);   // pos 3-4
 
-    // Style 3 (1992+): first 2 = year ≥ 30 (i.e. 1930+) or ≤ 30 but second 2 is valid month
-    // Key distinction: in Style 3 pos[0..1]=year, pos[2..3]=month
-    //   In Style 4: pos[0..1]=month (01-12), pos[2..3]=year
-    // Heuristic: if first2 >= 30 it's a year → Style 3
-    //            if first2 <= 12 and second2 could be a year → Style 4
-    if (first2 >= 30) {
-      // Style 3: first2 = 2-digit year, second2 = month
-      const year  = first2 >= 30 ? 1900 + first2 : 2000 + first2;
-      const month = second2;
-      if (month >= 1 && month <= 12 && year >= 1930 && year <= 2030) {
-        return { year, month, style: 'Style 3 (1992+) — YY·MM·sequence', ambiguous: false };
-      }
-    } else if (first2 >= 1 && first2 <= 12) {
-      // Style 4 (pre-1992): first2 = month, second2 = year
-      const month = first2;
-      const yr2   = second2;
-      const year  = yr2 <= 30 ? 2000 + yr2 : 1900 + yr2;
-      if (year >= 1950 && year <= 2040) {
-        return { year, month, style: 'Style 4 (pre-1992) — MM·YY·sequence', ambiguous: false };
-      }
+    // Primary: YY·MM
+    const yrPrimary = p12 <= NOW_YR2 ? 2000 + p12 : 1900 + p12;
+    const moValid   = p34 >= 1 && p34 <= 12;
+    const yrValid   = yrPrimary >= 1970 && yrPrimary <= (2000 + NOW_YR2);
+
+    if (yrValid && moValid) {
+      return {
+        year: yrPrimary, month: p34,
+        style: 'Style 3 — YY·MM (pos 1-2 year, pos 3-4 month)',
+        ambiguous: false
+      };
+    }
+
+    // Inverted: MM·YY (when primary fails)
+    const moInv = p12;
+    const yr2Inv = p34;
+    const yrInv = yr2Inv <= NOW_YR2 ? 2000 + yr2Inv : 1900 + yr2Inv;
+    if (moInv >= 1 && moInv <= 12 && yrInv >= 1970 && yrInv <= (2000 + NOW_YR2)) {
+      return {
+        year: yrInv, month: moInv,
+        style: 'Style 4 — MM·YY inverted (pos 1-2 month, pos 3-4 year)',
+        ambiguous: false
+      };
     }
   }
 
