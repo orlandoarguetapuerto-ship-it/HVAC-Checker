@@ -859,23 +859,12 @@ const CARRIER_SERIES = [
     table: SHARED_CARRIER_PKG_TABLE
   },
 
-  // ── 38MA — Mini-Split Outdoor Unit ───────────────────────────
-  // Example (R-type):  38MARBQ36--3 → strip → 38MARBQ363
-  //                    prefix "38MA"(4) → rest "RBQ363" → first 2-digit group ≥9 = "36"
-  // Example (Q-type):  38MAQB09R--3 → strip → 38MAQB09R3
-  //                    prefix "38MA"(4) → rest "QB09R3" → first 2-digit group ≥9 = "09"
-  // Nominal Capacity: 09=0.75T · 12=1T · 18=1.5T · 24=2T · 30=2.5T · 36=3T
-  // Note: codes are ×1000 Btuh ÷ 12000 = tons
-  {
-    prefix: /^38MA/,
-    prefixLen: 4,
-    digitLen: 2,
-    label: '38MA — Mini-Split Outdoor Unit',
-    table: {
-      '09': '0.75', '12': '1.0', '18': '1.5',
-      '24': '2.0',  '30': '2.5', '36': '3.0'
-    }
-  },
+  // ── 38MA / 38MH / 38MF / 38MG / 38MV — Mini-Split Outdoor Units ───
+  // NOTE: Moved to the unified Carrier 38M[AHFGV] rule near the bottom
+  // of CARRIER_SERIES (added per HVAC_Info.docx). The new rule uses
+  // calcDiv12 at positions 8-9, which produces identical tons values
+  // (09=0.75T · 12=1T · 18=1.5T · 24=2T · 30=2.5T · 36=3T) to the
+  // previous table-only 38MA rule, plus it now also covers 38MH/MF/MG/MV.
 
   // ── 50TC — WeatherMaker Standard Efficiency Packaged Rooftop ─
   // Per docx: 50TC now uses the same unified Carrier packaged-rooftop
@@ -1396,6 +1385,168 @@ const CARRIER_SERIES = [
     label: '48AH/50AH — Packaged (digits 7-8-9 ÷ 12)',
     table: null
   },
+
+  // ══════════════════════════════════════════════════════════════
+  // NEW CARRIER SERIES (added per HVAC_Info.docx — May 2026)
+  // ══════════════════════════════════════════════════════════════
+
+  // ── 48GC / 50GC / 48KC / 50KC — Packaged Rooftops (positions 7-8) ─
+  // Per docx (image 1 — 48GC Model Number Nomenclature): position
+  // 7,8 of the model carries the 2-digit Cooling Tons code from
+  // the official Carrier table:
+  //   04=3T · 05=4T · 06=5T · 07=6T · 08=7.5T · 09=8.5T
+  //   12=10T · 14=12.5T · 17=15T · 20=17.5T · 24=20T · 28=25T
+  // These values are a subset of SHARED_CARRIER_PKG_TABLE so we reuse it.
+  // Model format: 48GC[D|E|F|L|S|R|T][H|J|K|L|T][##]... e.g. 48GCDL04A2A5
+  // prefixLen=6 skips "48GC" + 2 option letters (heat option + refrig option)
+  // so the first 2-digit group lands exactly at positions 7-8.
+  {
+    prefix: /^(48|50)(GC|KC)/,
+    prefixLen: 6,
+    digitLen: 2,
+    label: '48GC/50GC/48KC/50KC — Packaged Rooftop (positions 7-8, shared table)',
+    table: SHARED_CARRIER_PKG_TABLE
+  },
+
+  // ── 25VN / 24A — Variable-Speed Heat Pump / Comfort AC ────────
+  // Per docx (image 3 — 25VNA4 Product Data): positions 7-8 of the
+  // model carry the BTU/h × 1000 cooling-capacity code.
+  // Examples:
+  //   25VNA436A0030 → "36" → 36/12 = 3.0 tons
+  //   24A** with the same convention also routes here (any 24A* not
+  //   already matched by the more specific 24ACC/24SCA/24SNA/24ANA/
+  //   24ANB/24ABB rules above).
+  // prefixLen=6 (e.g. "25VNA4" or "24A___") puts the 2-digit code at pos 7-8.
+  {
+    prefix: /^(25VN|24A)/,
+    prefixLen: 6,
+    digitLen: 2,
+    calcDiv12: true,
+    label: '25VN/24A — Residential AC/HP (digits 7-8 ÷ 12)',
+    table: null
+  },
+
+  // ── RGS — Single Package High-Efficiency Rooftop (Carrier) ─────
+  // Per docx (image 7 — Carrier RGS Model Number Nomenclature):
+  // positions 4,5,6 contain the 3-digit Nominal Cooling Capacity in
+  // thousands of Btu/h. Code ÷ 12 = tons.
+  // Examples:
+  //   RGS091HDAA0AAA → "091" → 91/12 ≈ 7.5 tons
+  //   RGS036HDAA0AAA → "036" → 36/12 = 3.0 tons
+  //   RGS120HDAA0AAA → "120" → 120/12 = 10.0 tons
+  // prefixLen=3 ("RGS") puts the 3-digit code at positions 4-5-6.
+  {
+    prefix: /^RGS/,
+    prefixLen: 3,
+    digitLen: 3,
+    calcDiv12: true,
+    label: 'RGS — Single Package High-Efficiency Rooftop (digits 4-5-6 ÷ 12)',
+    table: null
+  },
+
+  // ── 580D / 579E / 579F / FR / FB — Single Package High-Eff Gas/Electric ──
+  // Per docx (image 8 — Model Description ODS Model Number):
+  // positions 7,8,9 of the model carry the 3-digit Nominal Tons
+  // code (× 1000 BTU). Code ÷ 12 = tons.
+  // Examples:
+  //   580DEV090180-B → "090" → 90/12 = 7.5 tons
+  //   579EJV036074   → "036" → 36/12 = 3.0 tons
+  //   579FPV120225   → "120" → 120/12 = 10.0 tons
+  // prefixLen=6 puts the 3-digit code at positions 7-8-9 of the model.
+  // NOTE: This rule must come AFTER the more specific FB4 rule (above)
+  //       so FB4 with its dedicated table is matched first; the negative
+  //       lookahead (?!4) on the FB branch ensures FB4 is excluded here.
+  {
+    prefix: /^(580D|579E|579F|FR|FB(?!4))/,
+    prefixLen: 6,
+    digitLen: 3,
+    calcDiv12: true,
+    label: '579E/579F/580D/FR/FB — Single Package High-Eff (digits 7-8-9 ÷ 12)',
+    table: null
+  },
+
+  // ── 30RA/RH/RY/RQ/XV/RC/XA/XW — Large Air-Cooled Chillers/Heat Pumps ─
+  // Per docx (image 9 — 30RQM Model Number Nomenclature):
+  // positions 6,7,8 of the model carry the Nominal Capacity DIRECTLY
+  // IN TONS (NO division needed — high-tonnage units like 020 = 20 tons).
+  // Examples:
+  //   30RQM020-6D-A---K → "020" → 20 tons (direct)
+  //   30XV-080         → "080" → 80 tons
+  //   30RA-150         → "150" → 150 tons
+  // prefixLen=5 ("30R??" or "30X??") puts the 3-digit code at pos 6-7-8.
+  // Accept any code from 10 to 500 inclusive.
+  {
+    prefix: /^30(RA|RH|RY|RQ|RC|XV|XA|XW)/,
+    prefixLen: 5,
+    digitLen: 3,
+    calcDirect: true,
+    directMin: 10,
+    directMax: 500,
+    label: '30RA/RH/RY/RQ/XV/RC/XA/XW — Large Air-Cooled Chiller/HP (direct tons at positions 6-7-8)',
+    table: null
+  },
+
+  // ── 38MH / 38MF / 38MG / 38MV (also 38MA) — Mini-Split Heat Pump Outdoor ─
+  // Per docx (image 10 — Carrier OUTDOOR UNIT nomenclature):
+  // positions 8,9 of the model carry the 2-digit Nominal Capacity
+  // code (× 1000 BTU). Code ÷ 12 = tons.
+  //   09=0.75T · 12=1T · 18=1.5T · 24=2T · 30=2.5T · 36=3T
+  // Example: 38MHRBQ09AA3 → digits 8-9 = "09" → 09/12 = 0.75 tons
+  // NOTE: This regex includes 38MA (replacing the earlier 38MA-only
+  //       table-lookup rule which produced identical results).
+  //       Placed AFTER any other 38M? rules so they win for their
+  //       specific variants.
+  {
+    prefix: /^38M[AHFGV]/,
+    prefixLen: 7,
+    digitLen: 2,
+    calcDiv12: true,
+    // Mini-split codes commonly fall below 1 ton (09→0.75, 12→1.0, 18→1.5).
+    // roundQuarter:true rounds to the nearest 0.25 instead of 0.5 so 09 → 0.75
+    // (otherwise 09/12 = 0.75 would round up to 1.0 and 18/12 = 1.5 would be fine).
+    roundQuarter: true,
+    label: '38MA/MH/MF/MG/MV — Mini-Split Outdoor Unit (digits 8-9 ÷ 12)',
+    table: null
+  },
+
+  // ── FN — Carrier Fan Coil / Fan Unit (CFM-based tons range) ────
+  // Per docx (image 11 — FN Model Number Nomenclature):
+  // positions 7,8,9 of the model carry a 3-digit code where:
+  //   002 = 200 CFM · 003 = 300 CFM · 015 = 1500 CFM (code × 100 = CFM)
+  // Industry-standard CFM-to-tons conversion is 350-450 CFM per ton,
+  // producing a TONS RANGE (the user requested two results):
+  //   tons_low  = CFM ÷ 450  (high end of CFM-per-ton)
+  //   tons_high = CFM ÷ 350  (low end of CFM-per-ton)
+  // Example: FN1AAF015 → "015" → CFM = 1500 → tons range ≈ 3.3 to 4.3
+  // prefixLen=6 puts the 3-digit code at positions 7-8-9.
+  // This rule uses a dedicated path inside extractTonsCarrier (see below).
+  {
+    prefix: /^FN/,
+    prefixLen: 6,
+    digitLen: 3,
+    cfmRange: true,
+    cfmMultiplier: 100,   // code × 100 = nominal CFM
+    cfmLow:  450,         // CFM / 450 = low-end tons
+    cfmHigh: 350,         // CFM / 350 = high-end tons
+    label: 'FN — Fan Coil / Fan Unit (positions 7-8-9 = CFM ÷ 100 → tons range)',
+    table: null
+  },
+
+  // ── CNP — Coil (positions 6-7 ÷ 12) ────────────────────────────
+  // Per docx (image 14 — Carrier CNP Model Number Nomenclature):
+  // positions 6,7 carry the 2-digit Unit Capacity code (× 1000 BTU).
+  // Code ÷ 12 = tons.
+  //   24=2T · 30=2.5T · 36=3T · 42=3.5T · 48=4T · 60=5T
+  // Example: CNPHP24-17ACA → digits 6-7 = "24" → 24/12 = 2.0 tons
+  // prefixLen=5 puts the 2-digit code at positions 6-7.
+  {
+    prefix: /^CNP/,
+    prefixLen: 5,
+    digitLen: 2,
+    calcDiv12: true,
+    label: 'CNP — Coil (digits 6-7 ÷ 12)',
+    table: null
+  },
 ];
 
 /**
@@ -1436,12 +1587,42 @@ function extractTonsCarrier(model) {
       const btuCode = parseInt(code, 10);
       if (!isNaN(btuCode) && btuCode > 0) {
         const tonsRaw = btuCode / 12;
-        const tonsRounded = Math.round(tonsRaw * 2) / 2;  // nearest 0.5
+        // roundQuarter:true → nearest 0.25 (needed for mini-splits where 09 → 0.75).
+        // Default → nearest 0.5 (standard for larger residential/commercial units).
+        const tonsRounded = series.roundQuarter
+          ? Math.round(tonsRaw * 4) / 4
+          : Math.round(tonsRaw * 2) / 2;
         return {
           tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
           series: series.label,
           codeUsed: code,
           posUsed: null
+        };
+      }
+      continue;
+    }
+
+    // ── New: cfmRange mode — code × multiplier = CFM, then CFM/450 to CFM/350 = tons range ──
+    // Used by Carrier FN (Fan Coil / Fan Unit) per docx.
+    // The code (e.g. "015") × cfmMultiplier (e.g. 100) = nominal CFM (1500).
+    // Then divide by cfmLow (450) and cfmHigh (350) to get a tons range.
+    if (series.cfmRange) {
+      const codeNum = parseInt(code, 10);
+      if (!isNaN(codeNum) && codeNum > 0) {
+        const cfm = codeNum * (series.cfmMultiplier || 100);
+        const tonsLowRaw  = cfm / (series.cfmLow  || 450);
+        const tonsHighRaw = cfm / (series.cfmHigh || 350);
+        const tonsLow  = Math.round(tonsLowRaw  * 4) / 4;   // nearest 0.25
+        const tonsHigh = Math.round(tonsHighRaw * 4) / 4;
+        const fmt = (t) => t % 1 === 0 ? t.toFixed(1) : String(t);
+        return {
+          tons: `${fmt(tonsLow)}–${fmt(tonsHigh)}`,
+          series: series.label,
+          codeUsed: code,
+          posUsed: null,
+          cfm,
+          isCFM: true,
+          cfmRange: true
         };
       }
       continue;
@@ -2205,6 +2386,16 @@ function parseRheemSerial(raw) {
 //   GME950403  → pos 7-8 "40" → 3.5T   (GME rule)
 //   GKS90703   → pos 6-7 "70" → 5.8T   (GK rule)
 const GOODMAN_PREFIX_LIST = [
+  // ── 3-letter ANZ prefix — 3-DIGIT capacity at positions 6-7-8 ─────
+  // Per docx (image 13 — Amana/Goodman ANZ Model Number Nomenclature):
+  // Format: A(1) N(2) Z(3) [SEER 4-5] [Capacity 6-7-8] [Volt 9] [Eng 10-11]
+  // Example: ANZ14036 → digits 6-7-8 = "036" → 36/12 = 3.0 tons
+  // capLen:3 tells the extractor to read 3 digits (instead of the default 2).
+  { p:'ANZ', capPos:6, onePos:null, capLen:3 },
+  // NOTE: GRC was previously listed here, but per docx it is an
+  // International Comfort Products (ICP) brand — not Goodman. ICP routing
+  // (extractTonsICP → extractTonsDaikinICP) already handles GRC correctly
+  // via the generic "first 2-3 digits after letters ÷ 12" logic.
   // 4-char / 8-suffix families (most specific) — checked first
   { p:'GMVM', capPos:8, onePos:7 },   // per docx example → positions 8-9
   { p:'GME8', capPos:6, onePos:5 },
@@ -2273,17 +2464,19 @@ function extractTonsGoodmanColeman(model, brandLabel) {
   for (const rule of GOODMAN_PREFIX_LIST) {
     if (!m.startsWith(rule.p)) continue;
 
-    // Two-digit capacity code at the configured position (0-indexed = pos-1)
-    const start = rule.capPos - 1;
-    if (start + 2 > m.length) continue;
-    const twoDigit = m.substring(start, start + 2);
-    if (!/^\d{2}$/.test(twoDigit)) continue;
+    // Capacity code length — default 2 digits, or rule.capLen (e.g. 3 for ANZ)
+    const capLen = rule.capLen || 2;
+    const start = rule.capPos - 1;            // 1-indexed → 0-indexed
+    if (start + capLen > m.length) continue;
+    const codeStrRaw = m.substring(start, start + capLen);
+    if (!new RegExp('^\\d{' + capLen + '}$').test(codeStrRaw)) continue;
 
-    // Optional leading "1" at onePos → make it a 3-digit code (e.g. 100,115)
-    let codeStr = twoDigit;
-    if (rule.onePos !== null) {
-      const oneChar = m[rule.onePos - 1];   // 1-indexed → 0-indexed
-      if (oneChar === '1') codeStr = '1' + twoDigit;
+    // Optional leading "1" at onePos → make a 2-digit code into a 3-digit one
+    // (e.g. 100,115). Only applied when capLen === 2; not used for capLen === 3.
+    let codeStr = codeStrRaw;
+    if (capLen === 2 && rule.onePos !== null && rule.onePos !== undefined) {
+      const oneChar = m[rule.onePos - 1];     // 1-indexed → 0-indexed
+      if (oneChar === '1') codeStr = '1' + codeStrRaw;
     }
 
     const btuCode = parseInt(codeStr, 10);
@@ -2293,13 +2486,17 @@ function extractTonsGoodmanColeman(model, brandLabel) {
     const tonsRounded = Math.round(tonsRaw * 2) / 2;
     if (tonsRounded < 0.5 || tonsRounded > 50) continue;
 
+    const posRange = capLen === 3
+      ? rule.capPos + '-' + (rule.capPos + 1) + '-' + (rule.capPos + 2)
+      : rule.capPos + '-' + (rule.capPos + 1);
+
     return {
       tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
       btu: btuCode * 1000,
       codeUsed: codeStr,
       series: brandLabel + ' — capacity code at model positions ' +
-              rule.capPos + '-' + (rule.capPos + 1) + ' ÷ 12',
-      posUsed: 'positions ' + rule.capPos + '-' + (rule.capPos + 1)
+              posRange + ' ÷ 12',
+      posUsed: 'positions ' + posRange
     };
   }
 
@@ -2499,10 +2696,13 @@ function extractTonsMitsubishi(model) {
   const groups = [...m.matchAll(/\d{2,3}/g)];
   for (const g of groups) {
     const btuCode = parseInt(g[0].substring(0, 3), 10);
-    if (btuCode < 9) continue;
+    // Mini-splits go as low as 6,000 BTU (e.g. MSZ-FH06NA = 0.5 tons).
+    // Previously this was `< 9` which incorrectly rejected codes like "06".
+    if (btuCode < 5) continue;
     const tons = btuCode * 1000 / 12000;
-    const tonsRounded = Math.round(tons * 2) / 2;
-    if (tonsRounded < 0.5 || tonsRounded > 50) continue;
+    // Round to nearest 0.25 ton so 09/12 displays as 0.75 (not 1.0).
+    const tonsRounded = Math.round(tons * 4) / 4;
+    if (tonsRounded < 0.25 || tonsRounded > 50) continue;
     return {
       tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
       btu: btuCode * 1000,
@@ -2984,26 +3184,32 @@ function extractTonsDaikinICP(model, brandLabel) {
     }
   }
 
-  // ── General: locate the first digit after the leading letters ──
+  // ── General Daikin/ICP rule (per HVAC_Info.docx) ───────────────
+  // The model normally begins with 2-5 letters; locate the first DIGIT.
+  // Starting from that first digit, accumulate up to 3 CONSECUTIVE digits.
+  // If a non-digit (typically a letter) is encountered before 3 digits
+  // are accumulated, stop early and use what we have (2 digits is fine).
+  // That code ÷ 12 = tons.
+  //
+  // Examples (per docx):
+  //   FXMQ09PBVJU            → first digit '0' at idx 4 → "09" (then 'P' stops it) → 9/12 = 0.75T
+  //   FXMQ24PBVJU            → first digit '2' at idx 4 → "24" (then 'P' stops it) → 24/12 = 2T
+  //   DBG1503VH00001SAA      → first digit '1' at idx 3 → "150" (capped at 3 digits) → 150/12 = 12.5T
+  //   DFC0606D000001SAA      → first digit '0' at idx 3 → "060" (capped at 3 digits) → 60/12 = 5T
+  //   RGS150LDCA0AAAA (ICP)  → first digit '1' at idx 3 → "150" → 150/12 = 12.5T
+  //   CAS091HAA0A00AA (ICP)  → first digit '0' at idx 3 → "091" → 91/12 ≈ 7.5T
+  //   WFEU040B036 (ICP)      → first digit '0' at idx 4 → "040" (then 'B' stops it) → 40/12 = 3.3T
   const firstDigitIdx = m.search(/\d/);
   if (firstDigitIdx < 0) return null;
 
-  let codeStr;
-  const d1 = m[firstDigitIdx];
-  if (d1 === '0') {
-    // Low-tonnage: take the 0 and the next digit (2-digit code)
-    if (firstDigitIdx + 2 > m.length) return null;
-    codeStr = m.substring(firstDigitIdx, firstDigitIdx + 2);
-  } else {
-    // Take this digit + the next one (2-digit code)
-    if (firstDigitIdx + 2 > m.length) return null;
-    codeStr = m.substring(firstDigitIdx, firstDigitIdx + 2);
-    // If the third digit is a 0, include it (3-digit code) e.g. 150
-    const third = m[firstDigitIdx + 2];
-    if (third === '0') codeStr = m.substring(firstDigitIdx, firstDigitIdx + 3);
+  // Accumulate up to 3 consecutive digits from firstDigitIdx
+  let codeStr = '';
+  for (let i = firstDigitIdx; i < m.length && codeStr.length < 3; i++) {
+    if (/\d/.test(m[i])) codeStr += m[i];
+    else break;   // hit a non-digit → stop
   }
 
-  if (!/^\d{2,3}$/.test(codeStr)) return null;
+  if (codeStr.length < 2 || !/^\d{2,3}$/.test(codeStr)) return null;
   const n = parseInt(codeStr, 10);
   if (!n) return null;
   const tonsRounded = Math.round(n / 12 * 4) / 4;  // nearest 0.25 ton (e.g. 09/12=0.75)
@@ -3012,7 +3218,7 @@ function extractTonsDaikinICP(model, brandLabel) {
     tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
     btu: n * 1000,
     codeUsed: codeStr,
-    series: brandLabel + ' — first numeric group after letters ÷ 12',
+    series: brandLabel + ' — first 2-3 consecutive digits after letters ÷ 12',
     posUsed: null
   };
 }
@@ -3515,6 +3721,65 @@ function extractTonsYork(model) {
   if (!model) return null;
   const m = model.trim().toUpperCase().replace(/[\s\-]/g, '');
 
+  // ── Special case: York S06/S07/S08/S10/S12 — 6.5-12.5 Ton Packaged ───
+  // Per docx (image 4 — 6.5-12.5 Ton Model Number Nomenclature):
+  // The model starts with "S" + 2-digit nominal cooling capacity code
+  // at positions 2-3. The codes map to a FIXED lookup table (not ÷12):
+  //   S06 = 6.5T · S07 = 7.5T · S08 = 8.5T · S10 = 10.0T · S12 = 12.5T
+  // The match must be exact: only these 5 codes are valid for this rule.
+  // Example: S07ZFN10A2AAA6 → "07" → 7.5 tons
+  const YORK_S_TONS = {
+    '06': 6.5, '07': 7.5, '08': 8.5, '10': 10.0, '12': 12.5
+  };
+  if (/^S\d{2}/.test(m) && m.length >= 3) {
+    const capCode = m.substring(1, 3);  // positions 2-3
+    const tons = YORK_S_TONS[capCode];
+    if (tons !== undefined) {
+      return {
+        tons: String(tons % 1 === 0 ? tons.toFixed(1) : tons),
+        btu: tons * 12000,
+        codeUsed: capCode,
+        series: 'York S06/S07/S08/S10/S12 — 6.5-12.5 Ton Packaged (positions 2-3 lookup)',
+        posUsed: 'positions 2-3'
+      };
+    }
+  }
+
+  // ── Special case: York PCE/PHE/PCG/PHG — Packaged AC/HP w/ Electric or Gas Heat ──
+  // Per docx (image 5 — York NOMENCLATURE for PCE/PHE/PCG/PHG):
+  // Position 1-3 = Model Family (PCE/PHE/PCG/PHG)
+  // Position 4   = Nominal Cooling Efficiency (4=14 SEER, 6=16 SEER)
+  // Position 5   = Cabinet Size (A=small, B=large)
+  // Positions 6-7 = Nominal Cooling Capacity (BTU × 1000) → ÷ 12 = tons
+  //   24=2T · 30=2.5T · 36=3T · 42=3.5T · 48=4T · 60=5T
+  // Example: PCE4B4221A → digits 6-7 = "42" → 42/12 = 3.5 tons
+  if (/^P[CH][EG]/.test(m) && m.length >= 7) {
+    const capCode = m.substring(5, 7);  // positions 6-7
+    if (/^\d{2}$/.test(capCode)) {
+      const btuCode = parseInt(capCode, 10);
+      if (!isNaN(btuCode) && btuCode > 0) {
+        const tonsRaw = btuCode / 12;
+        const tonsRounded = Math.round(tonsRaw * 2) / 2;  // nearest 0.5
+        if (tonsRounded >= 0.5 && tonsRounded <= 50) {
+          const family = m.substring(0, 3);
+          const familyDesc = {
+            PCE: 'packaged A/C with electric heat',
+            PHE: 'packaged heat pump with electric heat',
+            PCG: 'packaged A/C with gas heat',
+            PHG: 'packaged heat pump with gas heat'
+          }[family] || 'packaged unit';
+          return {
+            tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
+            btu: btuCode * 1000,
+            codeUsed: capCode,
+            series: `York ${family} — ${familyDesc} (digits 6-7 ÷ 12)`,
+            posUsed: 'positions 6-7'
+          };
+        }
+      }
+    }
+  }
+
   // ── Special case: York Packaged AC (ZQ, ZX, ZY, ZL) AND
   //    York Packaged Heat Pump (XY, XX, XQ) — same lookup table ──
   // Per docx: XY/XX/XQ are calculated the same way as ZX.
@@ -3601,15 +3866,15 @@ function extractTonsYork(model) {
 //   Detection: pos[1]=digit, pos[2]=month-letter, pos[3]=digit
 //
 // STYLE A (pre-2004, equipment before 2004):
-//   Format: P M Y Y ······
+//   Format: P M Y T NNNNNN  (4 letters + 6-digit sequence)
 //   [0] = Plant letter
-//   [1] = Month letter  (A-N, skipping I)
-//   [2] = Year letter (first)  → maps to year(s) via YORK_YEAR_LETTER table
-//   [3] = Year letter (second) → maps to year(s) via YORK_YEAR_LETTER table
-//   [4+] = Numeric sequence
-//   Year is encoded by two letters; each letter may map to two possible years.
-//   The second letter's mapping is used as the primary year result.
-//   Example: WAKM011379 → plant=W, A=Jan, K→1980/2001, M→1982/2003
+//   [1] = Month letter  (A-N, skipping I and J)
+//   [2] = Year letter   → maps to year(s) via YORK_YEAR_LETTER table
+//   [3] = Type-of-Item letter (M=Mfg Basic Unit, P=Purchased, S/T/Y/Z/O)
+//        → NOT a year letter — must NOT be used for year lookup
+//   [4+] = 6-digit Sequence Number
+//   Example: NAKM011378 → plant=N, A=Jan, K→1980/2001, M=Mfg Basic Unit
+//            → January 1980 or 2001
 //   Detection: pos[1]=month-letter, pos[2-3]=letters, pos[4+]=digits
 //
 // NOTE: This function is 100% isolated from parseCarrierSerial.
@@ -3653,8 +3918,16 @@ function parseYorkSerial(raw) {
     return { year, month, style: 'Style B (2004+)', ambiguous: false };
   }
 
-  // ── Try Style A: Plant + MonthLetter + YearLetter + YearLetter + digits ──
-  // pos[0]=letter, pos[1]=valid month letter, pos[2-3]=letters, pos[4+]=digits
+  // ── Try Style A (Style 2 per docx): Plant + MonthLetter + YearLetter + TypeLetter + digits ──
+  // Per official York/Coleman Style 2 chart (image in docx):
+  //   pos[0] = Plant letter
+  //   pos[1] = MONTH letter (A-N, excluding I and J)
+  //   pos[2] = YEAR letter (this is the ONE that maps to the year via YORK_YEAR_LETTER)
+  //   pos[3] = Type-of-Item letter (M=Mfg, P=Purchased, S=Mfg LowSide, T=Purchased LowSide,
+  //            Y=Mfg Accessory, Z=Purchased Accessory, O=Filler) — NOT a year letter.
+  //   pos[4+] = 6-digit sequence number
+  // Example: NAKM011378 → N=plant, A=Jan, K=1980/2001, M=Mfg Basic Unit → Jan 1980/2001
+  // (Style began 1971 and ran to October 2004.)
   if (
     /^[A-Z]$/.test(s[0]) &&
     YORK_MONTH_MAP[s[1]] !== undefined &&
@@ -3663,8 +3936,9 @@ function parseYorkSerial(raw) {
     /^\d+$/.test(s.substring(4))
   ) {
     const month  = YORK_MONTH_MAP[s[1]];
-    // Use the second year letter as the primary year reference (more specific)
-    const yEntry = YORK_YEAR_LETTER[s[3]] || YORK_YEAR_LETTER[s[2]] || null;
+    // FIX: The YEAR letter is s[2] (3rd position), NOT s[3] (4th position).
+    // s[3] is the Type-of-Item code (M/P/S/T/Y/Z/O), not a year letter.
+    const yEntry = YORK_YEAR_LETTER[s[2]] || null;
     if (!month || !yEntry) return null;
 
     const ambiguous = yEntry.length > 1;
