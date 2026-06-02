@@ -1397,12 +1397,19 @@ const CARRIER_SERIES = [
   //   04=3T · 05=4T · 06=5T · 07=6T · 08=7.5T · 09=8.5T
   //   12=10T · 14=12.5T · 17=15T · 20=17.5T · 24=20T · 28=25T
   // These values are a subset of SHARED_CARRIER_PKG_TABLE so we reuse it.
-  // Model format: 48GC[D|E|F|L|S|R|T][H|J|K|L|T][##]... e.g. 48GCDL04A2A5
-  // prefixLen=6 skips "48GC" + 2 option letters (heat option + refrig option)
-  // so the first 2-digit group lands exactly at positions 7-8.
+  //
+  // Real-world model formats vary:
+  //   48GCDL04A2A5         — 2 option letters, no dash (textbook)
+  //   50KC-A06A2B5A0A0A0   — 1 option letter + dash (the dash is stripped
+  //                          during normalization, leaving only 1 letter)
+  //   48GCD-06A2...        — 1 letter + dash variants
+  // prefixLen=4 skips only "48GC"/"50KC" so the digitLen:2 logic finds
+  // the FIRST 2-digit group anywhere afterward (the regex `\d{2,}` is
+  // anchored to digit runs, and Carrier doesn't put digits in option
+  // positions, so this is safe).
   {
     prefix: /^(48|50)(GC|KC)/,
-    prefixLen: 6,
+    prefixLen: 4,
     digitLen: 2,
     label: '48GC/50GC/48KC/50KC — Packaged Rooftop (positions 7-8, shared table)',
     table: SHARED_CARRIER_PKG_TABLE
