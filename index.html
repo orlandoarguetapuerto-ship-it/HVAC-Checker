@@ -1505,14 +1505,23 @@ const CARRIER_SERIES = [
   //       specific variants.
   {
     prefix: /^38M[AHFGV]/,
-    prefixLen: 7,
+    prefixLen: 4,
     digitLen: 2,
     calcDiv12: true,
+    // Real-world 38M models vary in option-letter count between the family
+    // prefix and the BTU code:
+    //   38MHRBQ09AA3   — 3 option letters (textbook from docx)
+    //   38MHRQ09A--3   — 2 option letters + dashes (real-world variant)
+    //   38MARBQ24AA3   — 3 option letters
+    // prefixLen:4 skips only "38M[AHFGV]" and lets the digit-run regex find
+    // the FIRST 2-digit group anywhere afterward (Carrier never puts digits
+    // in option-letter positions on the 38M family, so this is safe).
+    //
     // Mini-split codes commonly fall below 1 ton (09→0.75, 12→1.0, 18→1.5).
     // roundQuarter:true rounds to the nearest 0.25 instead of 0.5 so 09 → 0.75
-    // (otherwise 09/12 = 0.75 would round up to 1.0 and 18/12 = 1.5 would be fine).
+    // (otherwise 09/12 = 0.75 would round up to 1.0).
     roundQuarter: true,
-    label: '38MA/MH/MF/MG/MV — Mini-Split Outdoor Unit (digits 8-9 ÷ 12)',
+    label: '38MA/MH/MF/MG/MV — Mini-Split Outdoor Unit (first 2-digit code ÷ 12)',
     table: null
   },
 
@@ -1539,19 +1548,24 @@ const CARRIER_SERIES = [
     table: null
   },
 
-  // ── CNP — Coil (positions 6-7 ÷ 12) ────────────────────────────
+  // ── CNP — Coil (first 2-digit code ÷ 12) ───────────────────────
   // Per docx (image 14 — Carrier CNP Model Number Nomenclature):
-  // positions 6,7 carry the 2-digit Unit Capacity code (× 1000 BTU).
+  // the Unit Capacity code (× 1000 BTU) is a 2-digit number.
   // Code ÷ 12 = tons.
   //   24=2T · 30=2.5T · 36=3T · 42=3.5T · 48=4T · 60=5T
-  // Example: CNPHP24-17ACA → digits 6-7 = "24" → 24/12 = 2.0 tons
-  // prefixLen=5 puts the 2-digit code at positions 6-7.
+  //
+  // Real-world CNP models place the BTU code at different positions:
+  //   CNPHP2417ACA      — code "24" at positions 6-7 (textbook)
+  //   CNPH6024ALAEAAA   — code "60" at positions 5-6 (real-world variant)
+  // The CNP family always begins with letters (no digits in the first
+  // few positions), so we use prefixLen:3 and let the digit-run regex
+  // find the FIRST 2-digit code anywhere after "CNP".
   {
     prefix: /^CNP/,
-    prefixLen: 5,
+    prefixLen: 3,
     digitLen: 2,
     calcDiv12: true,
-    label: 'CNP — Coil (digits 6-7 ÷ 12)',
+    label: 'CNP — Coil (first 2-digit code ÷ 12)',
     table: null
   },
 ];
@@ -1613,6 +1627,11 @@ function extractTonsCarrier(model) {
     // Used by Carrier FN (Fan Coil / Fan Unit) per docx.
     // The code (e.g. "015") × cfmMultiplier (e.g. 100) = nominal CFM (1500).
     // Then divide by cfmLow (450) and cfmHigh (350) to get a tons range.
+    // NOTE: we deliberately do NOT set `cfmRange:true` on the return, because the
+    // renderer (line ~4054) expects cfmRange to be an ARRAY [low, high] of CFM
+    // numbers (AAON convention). Here the range lives in the tons string itself,
+    // so we let the renderer fall through to the `isCFM && cfm` branch which
+    // shows the single CFM value as the note line.
     if (series.cfmRange) {
       const codeNum = parseInt(code, 10);
       if (!isNaN(codeNum) && codeNum > 0) {
@@ -1629,7 +1648,7 @@ function extractTonsCarrier(model) {
           posUsed: null,
           cfm,
           isCFM: true,
-          cfmRange: true
+          isRange: true   // shrinks the tons font so "3.25–4.25" fits in the box
         };
       }
       continue;
@@ -2399,10 +2418,13 @@ const GOODMAN_PREFIX_LIST = [
   // Example: ANZ14036 → digits 6-7-8 = "036" → 36/12 = 3.0 tons
   // capLen:3 tells the extractor to read 3 digits (instead of the default 2).
   { p:'ANZ', capPos:6, onePos:null, capLen:3 },
-  // NOTE: GRC was previously listed here, but per docx it is an
-  // International Comfort Products (ICP) brand — not Goodman. ICP routing
-  // (extractTonsICP → extractTonsDaikinICP) already handles GRC correctly
-  // via the generic "first 2-3 digits after letters ÷ 12" logic.
+  // ── 3-letter GRC prefix — Goodman variant (positions 6-7 ÷ 12) ───
+  // Real-world example: GRC1360M20AA → positions 6-7 = "60" → 60/12 = 5T.
+  // (Note: the docx also lists GRC under International Comfort Products with
+  // a 3-digit code right after "GRC" — that ICP-style variant is handled by
+  // extractTonsICP separately.)  onePos:null disables the "prepend 1" rule
+  // because the digit at position 5 here is a series code (not a "1" flag).
+  { p:'GRC', capPos:6, onePos:null },
   // 4-char / 8-suffix families (most specific) — checked first
   { p:'GMVM', capPos:8, onePos:7 },   // per docx example → positions 8-9
   { p:'GME8', capPos:6, onePos:5 },
