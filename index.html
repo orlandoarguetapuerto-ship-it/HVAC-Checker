@@ -755,18 +755,16 @@ const CARRIER_SERIES = [
   },
 
   // ── FB4 — Fan Coil Unit (Puron Base) ─────────────────────────
-  // Example: FB4CNF018000 → prefix "FB4"(3) + series(1) + electrical(1) + cabinet(1) = skip 6
-  //          → rest "018000" → code "018" → 18000 BTU = 1.5 tons
-  // Capacity codes (Btuh): 018=1.5T · 024/025=2T · 030=2.5T · 036=3T · 042=3.5T · 048=4T · 060/061=5T
+  // Updated: positions 8-9 ÷ 12 = tons (per NEW_Hvac.docx)
+  // Uses first 3-digit group after prefix (e.g. 060 → 60/12 = 5T)
   {
     prefix: /^FB4/,
-    prefixLen: 6,
-    label: 'FB4 — Fan Coil Unit (Puron Base)',
-    table: {
-      '018': '1.5', '024': '2.0', '025': '2.0', '030': '2.5',
-      '036': '3.0', '042': '3.5', '048': '4.0',
-      '060': '5.0', '061': '5.0'
-    }
+    prefixLen: 3,
+    digitLen: 3,
+    calcDiv12: true,
+    unitType: 'Fan Coil',
+    label: 'FB4 — Fan Coil Unit (Puron Base, first 3-digit code ÷ 12)',
+    table: null
   },
 
   // ── 38HK — Split-System Air-Cooled Condenser ─────────────────
@@ -1002,32 +1000,46 @@ const CARRIER_SERIES = [
     table: SHARED_CARRIER_PKG_TABLE
   },
 
-  // ── 24ACC / 24SCA / 24SNA — residential split-system condensers ──
-  // Example: 24ACC336A300 → prefix "24ACC" len 5, skip 1 series digit → rest "36A300" → code "36"
-  // Format: 24ACC [series-digit] [BTU-code-2-digits] ...
-  // Direct BTU-code: value × 1000 BTU ÷ 12000 = tons
+  // ── Carrier Air Conditioner group — digits 7-8 ÷ 12 = tons ────────
+  // Models: 24AAA, 24ABB, 24ABC, 24ACA, 24ACB, 24ACC, 24AHA, 24ANB, 24APB,
+  //         24SCA, 24SPA, 24TPA, 24TPB, 24VNA, 34SCA, 26VN, 26TP, 26SP,
+  //         26SC, 38CK, 24SNA, 24ANA
+  // prefixLen=6 skips prefix (5 chars) + 1 SEER/variant digit → code at pos 7-8
+  // Example: 24ACC336A300 → skip "24ACC3" → "36" → 36/12 = 3.0T
   {
-    prefix: /^24(ACC|SCA|SNA|ANA|ANB)/,
-    prefixLen: 6,
-    digitLen: 2,
-    label: '24ACC/SCA — Split-System Condenser',
-    table: {
-      '18': '1.5', '24': '2.0', '30': '2.5',
-      '36': '3.0', '42': '3.5', '48': '4.0',
-      '60': '5.0', '70': '5.8'
-    }
-  },
-
-  // ── 25HCC / 25HCB / 25HCA / 25HC / 25SC — heat pump & AC condensers ──
-  // Per docx update: calculate tons directly from BTU code at positions 7-8 ÷ 12.
-  // Model: 25HC[Variant][SEER digit][BTU 2-digit]... e.g. 25HCB3 30 A003 → "30" → 2.5T
-  // prefixLen=6 skips "25HCB3", first 2-digit group is the BTU code.
-  {
-    prefix: /^25(H[CABCD]?|SC)/,
+    prefix: /^(24A[ABCDHPSVT]|24S[CP]|24T[PV]|34SC|26(VN|TP|SP|SC)|38CK|24SNA|24ANA)/,
     prefixLen: 6,
     digitLen: 2,
     calcDiv12: true,
-    label: '25HC / 25SC — Residential Condenser (positions 7-8 ÷ 12)',
+    unitType: 'Air Conditioner',
+    label: 'Carrier AC — Split-System (digits 7-8 ÷ 12)',
+    table: null
+  },
+
+  // ── 38MURA / 37MUHA — Mini-Split Heat Pump (digits 8-9 ÷ 12) ────
+  {
+    prefix: /^(38MURA|37MUHA)/,
+    prefixLen: 7,
+    digitLen: 2,
+    calcDiv12: true,
+    roundQuarter: true,
+    unitType: 'Heat Pump (Mini-Split)',
+    label: '38MURA/37MUHA — Mini-Split Heat Pump (digits 8-9 ÷ 12)',
+    table: null
+  },
+
+  // ── Carrier Heat Pump group — digits 7-8 ÷ 12 = tons ─────────────
+  // Models: 25HBC, 25HCB, 25HCC, 25HCE, 25HHA, 25HNB, 25HNH, 25HPB,
+  //         25SPA, 25TPA, 25TPB, 25VNA, 27SCA, 27SPA, 27VN, 27VP, 27TP
+  // NOTE: 25SCA is already covered by the AC group above.
+  // prefixLen=6 → code at positions 7-8
+  {
+    prefix: /^(25H[BCEHPN]|25(SP|TP|VN)|27(SC|SP|VN|VP|TP))/,
+    prefixLen: 6,
+    digitLen: 2,
+    calcDiv12: true,
+    unitType: 'Heat Pump',
+    label: 'Carrier Heat Pump — Residential Condenser (digits 7-8 ÷ 12)',
     table: null
   },
 
@@ -1064,17 +1076,23 @@ const CARRIER_SERIES = [
   // NEW CARRIER SERIES (added per docx — Nuevas_implementaciones)
   // ══════════════════════════════════════════════════════════════
 
-  // ── 58/59 — Gas Furnaces (58M/58S/58T/59M/59S/59T) ─────────────
-  // Per docx page 3: model starts with 58 or 59, third char is M/S/T.
-  // Heating input BTU code is the first 3-digit group ≥ 040 found after
-  // the prefix. Code × 1000 ÷ 12000 = nominal tons.
-  // Examples: 58MCB100... → 100/12 = 8.5T · 59SC5B080... → 080/12 = 6.5T
+  // ── 58/59 — Gas Furnaces (expanded prefix list) ────────────────
+  // Models: 58CT, 58CU, 58CV, 58DLA, 58PHB, 58SB, 58SC, 58SP, 58ST,
+  //         58SU, 58TN, 58TP1, 59CU, 59MN, 59SC, 59SP, 59SU, 59TN, 59TP
+  // Also legacy: 58M/58S/58T/59M/59S/59T
+  // Smart scanning logic (see extractTonsCarrierFurnace below):
+  //   - skip prefix, then scan for first valid 2-3 digit code
+  //   - if leading digit=0 → take 3 digits (0XX)
+  //   - if leading digit=1 AND next is digit → take 3 digits (1XX)
+  //   - otherwise → take 2 digits (XX)
+  //   - skip if letter immediately follows leading '1' (e.g. 1B)
+  // Examples: 58CTA04510008→045/12=3.75T · 59CU1B026C141308→026/12=2.17T
+  //           58CVA11010012→110/12=9.16T · 58DLA15510008→155/12=12.9T
   {
-    prefix: /^5[89][MST]/,
-    prefixLen: 3,
-    digitLen: 3,
-    calcDiv12: true,
-    label: '58/59 — Gas Furnace (BTU input ÷ 12)',
+    prefix: /^5[89]/,
+    furnaceSmartScan: true,
+    unitType: 'Gas Furnace',
+    label: '58/59 — Gas Furnace (smart BTU scan ÷ 12)',
     table: null
   },
 
@@ -1102,18 +1120,20 @@ const CARRIER_SERIES = [
     }
   },
 
-  // ── FX4 — Fan Coils (Multipoise w/ Puron) ──────────────────────
-  // Per docx: code at positions 7-8-9 is the BTU capacity.
-  // 019=18,000 (1.5T) · 025=24,000 (2T) · 031=30,000 (2.5T)
-  // 037=36,000 (3T) · 043=42,000 (3.5T) · 049=48,000 (4T) · 061=60,000 (5T)
+  // ── Carrier Fan Coil group — digits at positions 8-9 ÷ 12 = tons ──
+  // Models: 40MUAA, F54, FE4A, FE4B, FE5, FFM, FJ4, FMA4, FMA5,
+  //         FMC, FMU, FT4B, FV4C, FX4D, FZ4A (and FX4 general)
+  // Strategy: skip the 3-4 char prefix, then find first 3-digit group ÷ 12
+  //   (codes like 048, 036, 060 start with 0 but parse correctly as 48, 36, 60)
+  // FB4, FX4, FE4 have 4-char prefix+variant: prefixLen=4; 3-char models: prefixLen=3
   {
-    prefix: /^FX4/,
-    prefixLen: 6,
-    label: 'FX4 — Fan Coil (Multipoise / Puron)',
-    table: {
-      '019': '1.5', '025': '2.0', '031': '2.5',
-      '037': '3.0', '043': '3.5', '049': '4.0', '061': '5.0'
-    }
+    prefix: /^(40MUAA|F(54|E4[AB]|E5|FM|J4|MA[45]|MC|MU|T4B|V4C|X4[D]?|Z4A))/,
+    prefixLen: 3,
+    digitLen: 3,
+    calcDiv12: true,
+    unitType: 'Fan Coil',
+    label: 'Carrier Fan Coil (FFM/FJx/FMAx/FMC/FMU/FTx/FVx/FXx/FZx/F54 — first 3-digit code ÷ 12)',
+    table: null
   },
 
   // ── 24ABB — Residential AC (Comfort Series, Puron) ─────────────
@@ -1126,6 +1146,7 @@ const CARRIER_SERIES = [
     prefixLen: 6,
     digitLen: 2,
     calcDiv12: true,
+    unitType: 'Air Conditioner',
     label: '24ABB — Residential AC (digits 7-8 ÷ 12)',
     table: null
   },
@@ -1200,16 +1221,39 @@ const CARRIER_SERIES = [
     }
   },
 
-  // ── 48VL — Single Packaged AC & Gas Furnace ────────────────────
-  // Per docx: digits 7-8 ÷ 12 = tons.
-  // Example: 48VL-K24040... → stripped 48VLK24040 → after prefix "48VLK" (5)
-  // → rest "24040" → first 2-digit = "24" → 24/12 = 2T.
+  // ── Carrier Packaged Products group — digits 7-8 ÷ 12 = tons ──
+  // Models: 48VG, 48VL, 48VR, 48VT, 50VG, 50VL, 50VR, 50VT, 50ZH,
+  //         50ZP, 48NG, 48NR, 50NG, 50NR, 50NT, 48NT, 50NL, 48NL,
+  //         48NH, 50NH, 48NP, 50NP
+  // prefixLen=6 skips prefix (4-5 chars) + option letter → code at pos 7-8
+  // IMPORTANT: 48V*/50V* here require 4th char = G,L,R,T to avoid
+  //            conflicting with the 48V/50V large rooftop table below.
+  // Example: 48VGK24040 → skip "48VGK2" (... first 2-digit group) → 24/12 = 2T
   {
-    prefix: /^48VL/,
+    prefix: /^(48|50)V[GLRT]/,
     prefixLen: 5,
     digitLen: 2,
     calcDiv12: true,
-    label: '48VL — Single Packaged AC/Furnace (digits 7-8 ÷ 12)',
+    unitType: 'Packaged Product',
+    label: 'Carrier Packaged Product — 48VG/VL/VR/VT/50VG/VL/VR/VT (digits 7-8 ÷ 12)',
+    table: null
+  },
+  {
+    prefix: /^(50)(ZH|ZP)/,
+    prefixLen: 5,
+    digitLen: 2,
+    calcDiv12: true,
+    unitType: 'Packaged Product',
+    label: 'Carrier Packaged Product — 50ZH/ZP (digits 7-8 ÷ 12)',
+    table: null
+  },
+  {
+    prefix: /^(48|50)N[GRTP]/,
+    prefixLen: 5,
+    digitLen: 2,
+    calcDiv12: true,
+    unitType: 'Packaged Product',
+    label: 'Carrier Packaged Product — 48NG/NR/NT/NP/50NG/NR/NT/NP (digits 7-8 ÷ 12)',
     table: null
   },
 
@@ -1238,6 +1282,7 @@ const CARRIER_SERIES = [
     prefixLen: 5,
     digitLen: 3,
     fallthroughIfMissing: true,
+    unitType: 'Packaged Product',
     label: '48N*/50N* (NL/NH/NM/NE/NV) — Packaged (positions 6-7-8 direct lookup)',
     table: {
       '018': '1.5', '024': '2.0', '030': '2.5', '036': '3.0'
@@ -1253,6 +1298,7 @@ const CARRIER_SERIES = [
     prefixLen: 5,
     digitLen: 2,
     calcDiv12: true,
+    unitType: 'Packaged Product',
     label: '48NG/48NL/48NH — Packaged Gas/Electric (digits 7-8 ÷ 12)',
     table: null
   },
@@ -1493,6 +1539,67 @@ const CARRIER_SERIES = [
     table: null
   },
 
+  // ── 48QE/50QE/48WE/50WE/48GE/50GE/48LH — Rooftop Units (shared table) ─
+  // Per NEW_Hvac.docx: digits 7-8 use the standard Carrier rooftop table:
+  //   04=3T · 05=4T · 06=5T · 07=6T · 08=7.5T · 09=8.5T
+  //   12=10T · 14=12.5T · 17=15T · 20=17.5T · 24=20T · 28=25T
+  // prefixLen=4 (e.g. "48QE") → first 2-digit group = code at pos 5+ (option letter then digits)
+  {
+    prefix: /^(48|50)(QE|WE|GE)|(48LH)/,
+    prefixLen: 4,
+    digitLen: 2,
+    unitType: 'Rooftop Unit',
+    label: '48QE/50QE/48WE/50WE/48GE/50GE/48LH — Rooftop Unit (digits 7-8, shared table)',
+    table: {
+      '04': '3.0',  '05': '4.0',  '06': '5.0',  '07': '6.0',
+      '08': '7.5',  '09': '8.5',  '12': '10.0', '14': '12.5',
+      '17': '15.0', '20': '17.5', '24': '20.0', '28': '25.0'
+    }
+  },
+
+  // ── 48V / 50V — Large Rooftop Units (special tonnage table) ─────
+  // Per NEW_Hvac.docx: 4th char must NOT be G, L, R, T (those go to Packaged Product above).
+  // Digits 7-8 map to a special high-tonnage table:
+  //   28=27.5T · 30=30T · 34=35T · 40=40T · 50=50T · 54=55T
+  //   60=60T · 70=70T · 74=75T · 90=90T · 98=100T
+  {
+    prefix: /^(48|50)V(?![GLRT])/,
+    prefixLen: 4,
+    digitLen: 2,
+    unitType: 'Rooftop Unit',
+    label: '48V/50V — Large Rooftop Unit (digits 7-8, high-tonnage table)',
+    table: {
+      '28': '27.5', '30': '30.0', '34': '35.0', '40': '40.0',
+      '50': '50.0', '54': '55.0', '60': '60.0', '70': '70.0',
+      '74': '75.0', '90': '90.0', '98': '100.0'
+    }
+  },
+
+  // ── 62X / 62L / 62W / 62H — Dedicated Outdoor Air Systems (DOAS) ─
+  // Per NEW_Hvac.docx: tons read directly from positions 5-6 of model.
+  //   Numeric code = direct tons (e.g. 20 = 20T, 30 = 30T)
+  //   Letter codes: AA=100T · BB=120T · CC=140T
+  {
+    prefix: /^62[XLWH]/,
+    doasScan: true,
+    unitType: 'Dedicated Outdoor Air System (DOAS)',
+    label: '62X/62L/62W/62H — DOAS (positions 5-6: numeric=direct tons, AA=100T, BB=120T, CC=140T)',
+    table: null
+  },
+
+  // ── 50HS — Heat Pump (digits 6-7 ÷ 12) ────────────────────────
+  // Per NEW_Hvac.docx: positions 6-7 carry the BTU code. Code ÷ 12 = tons.
+  // prefixLen=5 skips "50HS" + 1 option char → code at pos 6-7.
+  {
+    prefix: /^50HS/,
+    prefixLen: 5,
+    digitLen: 2,
+    calcDiv12: true,
+    unitType: 'Heat Pump',
+    label: '50HS — Heat Pump (digits 6-7 ÷ 12)',
+    table: null
+  },
+
   // ── 38MH / 38MF / 38MG / 38MV (also 38MA) — Mini-Split Heat Pump Outdoor ─
   // Per docx (image 10 — Carrier OUTDOOR UNIT nomenclature):
   // positions 8,9 of the model carry the 2-digit Nominal Capacity
@@ -1588,6 +1695,79 @@ function extractTonsCarrier(model) {
   for (const series of CARRIER_SERIES) {
     if (!series.prefix.test(m)) continue;
 
+    // ── furnaceSmartScan: 58/59 Gas Furnace smart code scanner ──────
+    if (series.furnaceSmartScan) {
+      // Determine actual prefix length (longest match wins)
+      const FURNACE_PREFIXES = [
+        '58TP1','58DLA','58PHB',
+        '58CT','58CU','58CV','58SB','58SC','58SP','58ST','58SU','58TN','58TP',
+        '59CU','59MN','59SC','59SP','59SU','59TN','59TP',
+        '58MS','58MT','58SS','58ST','58TT','59MS','59SS','59TT',
+        '58M','58S','58T','59M','59S','59T'
+      ];
+      let prefLen = 0;
+      for (const p of FURNACE_PREFIXES) {
+        if (m.startsWith(p)) { prefLen = p.length; break; }
+      }
+      if (!prefLen) continue; // not a recognized 58/59 furnace prefix
+
+      let i = prefLen;
+      let foundCode = null;
+      while (i < m.length) {
+        if (!/\d/.test(m[i])) { i++; continue; }
+        const d0 = m[i], d1 = m[i+1], d2 = m[i+2];
+        // Skip "1X" where X is a letter (e.g. 1B in 59CU1B026)
+        if (d0 === '1' && (!d1 || !/\d/.test(d1))) { i++; continue; }
+        let code = '';
+        if (d0 === '0') {
+          if (d1 && /\d/.test(d1) && d2 && /\d/.test(d2)) code = d0+d1+d2;
+          else { i++; continue; }
+        } else if (d0 === '1') {
+          if (d1 && /\d/.test(d1) && d2 && /\d/.test(d2)) code = d0+d1+d2;
+          else { i++; continue; }
+        } else {
+          if (d1 && /\d/.test(d1)) code = d0+d1;
+          else { i++; continue; }
+        }
+        const n = parseInt(code, 10);
+        if (n > 0) { foundCode = code; break; }
+        i++;
+      }
+      if (!foundCode) continue;
+      const n = parseInt(foundCode, 10);
+      const tonsRaw = n / 12;
+      const tonsRounded = Math.round(tonsRaw * 4) / 4;
+      return {
+        tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
+        series: series.label,
+        unitType: series.unitType || null,
+        codeUsed: foundCode,
+        posUsed: null
+      };
+    }
+
+    // ── doasScan: 62X/62L/62W/62H DOAS tons at positions 5-6 ────────
+    if (series.doasScan) {
+      const pos56 = m.substring(4, 6); // positions 5-6 (0-indexed 4-5)
+      let tons = null;
+      let codeUsed = pos56;
+      if (pos56 === 'AA') { tons = '100.0'; }
+      else if (pos56 === 'BB') { tons = '120.0'; }
+      else if (pos56 === 'CC') { tons = '140.0'; }
+      else if (/^\d{2}$/.test(pos56)) {
+        const n = parseInt(pos56, 10);
+        if (n > 0) tons = String(n % 1 === 0 ? n.toFixed(1) : n);
+      }
+      if (!tons) continue;
+      return {
+        tons,
+        series: series.label,
+        unitType: series.unitType || null,
+        codeUsed,
+        posUsed: 'positions 5-6'
+      };
+    }
+
     let code;
     if (series.digitLen) {
       // Series that use a 2-digit code — find first 2+ digit group
@@ -1616,6 +1796,7 @@ function extractTonsCarrier(model) {
         return {
           tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
           series: series.label,
+          unitType: series.unitType || null,
           codeUsed: code,
           posUsed: null
         };
@@ -1665,6 +1846,7 @@ function extractTonsCarrier(model) {
         return {
           tons: String(tonsNum % 1 === 0 ? tonsNum.toFixed(1) : tonsNum),
           series: series.label,
+          unitType: series.unitType || null,
           codeUsed: code,
           posUsed: null
         };
@@ -1688,6 +1870,7 @@ function extractTonsCarrier(model) {
         return {
           tons: tons2,
           series: series.label,
+          unitType: series.unitType || null,
           codeUsed: code2,
           posUsed: null
         };
@@ -1698,6 +1881,7 @@ function extractTonsCarrier(model) {
       return {
         tons,
         series: series.label,
+        unitType: series.unitType || null,
         codeUsed: code,
         posUsed: null
       };
@@ -1710,6 +1894,7 @@ function extractTonsCarrier(model) {
       return {
         tons: null,
         series: series.label,
+        unitType: series.unitType || null,
         codeUsed: code,
         posUsed: null,
         notInTable: true
@@ -2245,6 +2430,29 @@ function extractTonsRheem(model) {
     }
   }
 
+  // ── RHLA / RHLL / RHKL — Air Handlers (positions 7-8 ÷ 12) ─────
+  // Per NEW_Hvac.docx: BTU code at positions 7-8 (index 6-7).
+  // Example: RHLA1224... → positions 7-8 = "24" → 24/12 = 2T
+  if (/^RH(LA|LL|KL)/.test(m) && m.length >= 8) {
+    const code = m.substring(6, 8);
+    if (/^\d{2}$/.test(code)) {
+      const r = buildResult(code, 'Rheem RHLA/RHLL/RHKL — Air Handler (positions 7-8 ÷ 12)', 'positions 7-8');
+      if (r) return r;
+    }
+  }
+
+  // ── RH (standalone, not RH1/RH2/RHM/RHLA/RHLL/RHKL) — Air Handler ─
+  // Per NEW_Hvac.docx: BTU code at positions 7-8 (index 6-7).
+  // 3rd character must NOT be 1, 2, M, L, K (those are matched above).
+  // Example: RHXTYM50458 → positions 7-8 = "48" → 48/12 = 4T
+  if (/^RH/.test(m) && !/^RH[12MLKR]/.test(m) && m.length >= 8) {
+    const code = m.substring(6, 8);
+    if (/^\d{2}$/.test(code)) {
+      const r = buildResult(code, 'Ruud RH — Air Handler (positions 7-8 ÷ 12)', 'positions 7-8');
+      if (r) return r;
+    }
+  }
+
   // ── Fallback (legacy general logic): first letter+digits ───────
   const matches = [...m.matchAll(/[A-Z](\d{2,3})/g)];
   for (const match of matches) {
@@ -2305,7 +2513,7 @@ function parseRheemSerial(raw) {
   // e.g. 2N7943ADAAF051202602 → finds F → week 05 / year 12 → Feb 2012.
   // The W plant code is NOT considered here; it belongs to Style 1 below.
   {
-    const re = /([FMGN])(\d{2})(\d{2})/g;
+    const re = /([FMGNW])(\d{2})(\d{2})/g;
     let m;
     while ((m = re.exec(s)) !== null) {
       const week = parseInt(m[2], 10);
@@ -2950,6 +3158,29 @@ function extractTonsLennox(model) {
     }
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // Lennox 12ACX / 13ACX / 14ACX / 15ACX — Air Conditioners
+  // Per NEW_Hvac.docx: BTU code at positions 6-7-8 (index 5-7).
+  // Example: 13ACX036040 → pos 6-7-8 = "036" → 36/12 = 3T
+  // ─────────────────────────────────────────────────────────────
+  if (/^1[2345]ACX/.test(m) && m.length >= 8) {
+    const codeStr = m.substring(5, 8);   // positions 6-7-8 (0-indexed 5-7)
+    if (/^\d{3}$/.test(codeStr)) {
+      const btuCode = parseInt(codeStr, 10);
+      if (btuCode > 0) {
+        const tonsRaw = btuCode / 12;
+        const tonsRounded = Math.round(tonsRaw * 2) / 2;
+        return {
+          tons: String(tonsRounded % 1 === 0 ? tonsRounded.toFixed(1) : tonsRounded),
+          btu: btuCode * 1000,
+          codeUsed: codeStr,
+          series: 'Lennox 12/13/14/15ACX — Air Conditioner (positions 6-7-8 ÷ 12)',
+          posUsed: 'positions 6-8'
+        };
+      }
+    }
+  }
+
   // Find all consecutive digit groups of 2+ digits
   const groups = [...m.matchAll(/\d{2,}/g)];
 
@@ -3208,6 +3439,48 @@ function extractTonsDaikinICP(model, brandLabel) {
           tons: String(t % 1 === 0 ? t.toFixed(1) : t),
           btu: n * 1000, codeUsed: code,
           series: 'Daikin DZ — positions 8-9 ÷ 12', posUsed: 'positions 8-9'
+        };
+      }
+    }
+  }
+
+  // ── Daikin DX exception: positions 7-8-9 ÷ 12 ──────────────────
+  // Per NEW_Hvac.docx: model prefix DX, digits at positions 7-8-9 ÷ 12.
+  // Example: DX036... → positions 7-8-9 = "036" (or 2-digit group) → 36/12 = 3T
+  if (brandLabel === 'Daikin' && /^DX/.test(m) && m.length >= 7) {
+    // Find first 2-3 digit group starting from index 6 (position 7)
+    const rest = m.substring(6);
+    const matchDX = rest.match(/\d{2,3}/);
+    if (matchDX) {
+      const code = matchDX[0].substring(0, 3).replace(/\D/g, '');
+      const validCode = matchDX[0].substring(0, matchDX[0].length >= 3 ? 3 : 2);
+      const n = parseInt(validCode, 10);
+      if (n > 0) {
+        const t = Math.round(n / 12 * 4) / 4;
+        if (t >= 0.25 && t <= 100) {
+          return {
+            tons: String(t % 1 === 0 ? t.toFixed(1) : t),
+            btu: n * 1000, codeUsed: validCode,
+            series: 'Daikin DX — positions 7-8-9 ÷ 12', posUsed: 'positions 7-9'
+          };
+        }
+      }
+    }
+  }
+
+  // ── Daikin GS exception: positions 7-8 ÷ 12 ────────────────────
+  // Per NEW_Hvac.docx: model prefix GS (Daikin), digits at positions 7-8 ÷ 12.
+  // Example: GS24... → positions 7-8 = "24" → 24/12 = 2T
+  if (brandLabel === 'Daikin' && /^GS/.test(m) && m.length >= 8) {
+    const code = m.substring(6, 8);   // positions 7-8 (0-indexed 6-7)
+    if (/^\d{2}$/.test(code)) {
+      const n = parseInt(code, 10);
+      const t = Math.round(n / 12 * 4) / 4;
+      if (t >= 0.25 && t <= 50) {
+        return {
+          tons: String(t % 1 === 0 ? t.toFixed(1) : t),
+          btu: n * 1000, codeUsed: code,
+          series: 'Daikin GS — positions 7-8 ÷ 12', posUsed: 'positions 7-8'
         };
       }
     }
